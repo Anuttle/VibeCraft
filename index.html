@@ -906,6 +906,7 @@
               setIsInventoryOpen(true);
             }}
             isDead={isDead}
+            isInventoryOpen={isInventoryOpen}
           />
 
           {/* HUD Overlay */}
@@ -967,6 +968,9 @@
     // ==========================================
     const GameEngineCanvas = React.forwardRef((props, ref) => {
       const canvasRef = useRef(null);
+      const propsRef = useRef(props);
+      propsRef.current = props;
+
       const stateRef = useRef({
         scene: null,
         camera: null,
@@ -1091,7 +1095,7 @@
           }
 
           // Notify parent
-          props.onPositionUpdate(stateRef.current.playerPos.clone(), "South", biome.name);
+          propsRef.current.onPositionUpdate?.(stateRef.current.playerPos.clone(), "South", biome.name);
         },
       }));
 
@@ -1332,7 +1336,7 @@
 
             if (hitMob) {
               playSoundEffect("hit");
-              const slot = props.hotbar[props.activeSlotIndex];
+              const slot = propsRef.current.hotbar[propsRef.current.activeSlotIndex];
               const itemDef = slot?.itemId ? ITEM_REGISTRY[slot.itemId] : null;
               const dmg = itemDef?.attackDamage || 2;
               hitMob.health -= dmg;
@@ -1340,7 +1344,7 @@
               hitMob.velocity.add(lookDir.clone().multiplyScalar(6).setY(3));
 
               if (hitMob.health <= 0) {
-                props.onMobKilled();
+                propsRef.current.onMobKilled?.();
                 scene.remove(hitMob.group);
                 stateRef.current.mobs = stateRef.current.mobs.filter((m) => m !== hitMob);
                 if (hitMob.type === "pig") spawnWorldDrop(hitMob.position, "cooked_porkchop", 2);
@@ -1381,16 +1385,16 @@
           else if (e.button === 2) {
             if (hitData.hit) {
               if (hitData.blockType === BlockType.CRAFTING_TABLE) {
-                props.onOpenCraftingTable();
+                propsRef.current.onOpenCraftingTable?.();
                 if (document.pointerLockElement) document.exitPointerLock();
                 return;
               }
 
-              const slot = props.hotbar[props.activeSlotIndex];
+              const slot = propsRef.current.hotbar[propsRef.current.activeSlotIndex];
               const itemDef = slot?.itemId ? ITEM_REGISTRY[slot.itemId] : null;
 
               if (itemDef?.type === "food") {
-                props.onEatFood?.();
+                propsRef.current.onEatFood?.();
                 return;
               }
 
@@ -1417,12 +1421,13 @@
                   blocks[lx + lz * CHUNK_SIZE_X + py * CHUNK_SIZE_X * CHUNK_SIZE_Z] = itemDef.blockType;
 
                   // Deduct hotbar item
-                  props.setHotbar((prev) => {
+                  propsRef.current.setHotbar?.((prev) => {
                     const next = [...prev];
-                    if (next[props.activeSlotIndex].count > 1) {
-                      next[props.activeSlotIndex].count--;
+                    const activeIdx = propsRef.current.activeSlotIndex;
+                    if (next[activeIdx].count > 1) {
+                      next[activeIdx].count--;
                     } else {
-                      next[props.activeSlotIndex] = { itemId: "", count: 0 };
+                      next[activeIdx] = { itemId: "", count: 0 };
                     }
                     return next;
                   });
@@ -1443,6 +1448,8 @@
 
         // Key Listeners
         const handleKeyDown = (e) => {
+          if (e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA")) return;
+
           if (e.code === "KeyW") stateRef.current.keys.w = true;
           if (e.code === "KeyS") stateRef.current.keys.s = true;
           if (e.code === "KeyA") stateRef.current.keys.a = true;
@@ -1451,7 +1458,7 @@
           if (e.code === "ShiftLeft" || e.code === "ShiftRight") stateRef.current.keys.shift = true;
           if (e.code === "KeyE") {
             if (document.pointerLockElement) document.exitPointerLock();
-            props.onOpenInventory();
+            propsRef.current.onOpenInventory?.();
           }
           if (e.code === "KeyT") {
             stateRef.current.timeOfDay = (stateRef.current.timeOfDay + 0.25) % 1.0;
@@ -1461,8 +1468,12 @@
             const h = generator.getTerrainHeight(Math.floor(playerPos.x), Math.floor(playerPos.z)).height;
             playerPos.y = h + 2;
           }
+          // Number keys 1-9 switch hotbar slot
           if (e.key >= "1" && e.key <= "9") {
-            props.setActiveSlotIndex(parseInt(e.key, 10) - 1);
+            const targetIdx = parseInt(e.key, 10) - 1;
+            if (targetIdx >= 0 && targetIdx < 9) {
+              propsRef.current.setActiveSlotIndex?.(targetIdx);
+            }
           }
         };
 
@@ -1475,15 +1486,27 @@
           if (e.code === "ShiftLeft" || e.code === "ShiftRight") stateRef.current.keys.shift = false;
         };
 
+        // Mouse Wheel listener for switching hotbar slots (scroll up / down)
+        const handleWheel = (e) => {
+          if (propsRef.current.isDead || propsRef.current.isInventoryOpen) return;
+          const dir = Math.sign(e.deltaY);
+          if (dir !== 0) {
+            const currentIdx = typeof propsRef.current.activeSlotIndex === "number" ? propsRef.current.activeSlotIndex : 0;
+            const nextIdx = (currentIdx + dir + 9) % 9;
+            propsRef.current.setActiveSlotIndex?.(nextIdx);
+          }
+        };
+
         const handleLockChange = () => {
           const locked = document.pointerLockElement === canvas;
-          props.setIsLocked(locked);
+          propsRef.current.setIsLocked?.(locked);
         };
 
         document.addEventListener("mousemove", handleMouseMove);
         document.addEventListener("mousedown", handleMouseDown);
         window.addEventListener("keydown", handleKeyDown);
         window.addEventListener("keyup", handleKeyUp);
+        window.addEventListener("wheel", handleWheel, { passive: true });
         document.addEventListener("pointerlockchange", handleLockChange);
 
         // Resize Listener
@@ -1509,7 +1532,7 @@
           const { playerPos, playerVel, keys, mobs, itemDrops } = stateRef.current;
 
           // 1. Update Held Item Mesh if Active Hotbar Slot Changed
-          const activeSlot = props.hotbar[props.activeSlotIndex];
+          const activeSlot = propsRef.current.hotbar[propsRef.current.activeSlotIndex];
           const activeItemId = activeSlot?.itemId || "";
           if (stateRef.current.currentHeldItemId !== activeItemId) {
             stateRef.current.currentHeldItemId = activeItemId;
@@ -1572,7 +1595,7 @@
             if (stateRef.current.oxygen <= 0) {
               stateRef.current.drownDamageTimer += dt;
               if (stateRef.current.drownDamageTimer >= 1.5) {
-                props.onPlayerHurt?.(2);
+                propsRef.current.onPlayerHurt?.(2);
                 stateRef.current.drownDamageTimer = 0;
               }
             }
@@ -1769,7 +1792,7 @@
                 mob.rotationY = Math.atan2(dir.x, dir.z);
 
                 if (distToPlayer < 1.4 && mob.attackCooldown <= 0) {
-                  props.onPlayerHurt?.(3);
+                  propsRef.current.onPlayerHurt?.(3);
                   mob.attackCooldown = 1.2;
                 }
               }
@@ -1802,7 +1825,7 @@
               scene.remove(drop.mesh);
               drop.toRemove = true;
 
-              props.setHotbar((prev) => {
+              propsRef.current.setHotbar?.((prev) => {
                 const next = [...prev];
                 const existing = next.find((s) => s.itemId === drop.itemId && s.count < (ITEM_REGISTRY[drop.itemId]?.maxStack || 64));
                 if (existing) {
@@ -1829,8 +1852,8 @@
             else dirStr = "East";
 
             const currentBiome = generator.getBiomeAt(Math.floor(playerPos.x), Math.floor(playerPos.z)).name;
-            props.onPositionUpdate(playerPos.clone(), dirStr, currentBiome);
-            props.onOxygenUpdate?.(stateRef.current.oxygen, isHeadSubmerged);
+            propsRef.current.onPositionUpdate?.(playerPos.clone(), dirStr, currentBiome);
+            propsRef.current.onOxygenUpdate?.(stateRef.current.oxygen, isHeadSubmerged);
 
             const hours = Math.floor(t * 24);
             const mins = Math.floor((t * 24 - hours) * 60);
@@ -1838,7 +1861,7 @@
             const ampm = hours >= 12 ? "PM" : "AM";
             const fmt = `${hour12}:${mins.toString().padStart(2, "0")} ${ampm}`;
             const phase = hours >= 6 && hours < 18 ? "Day" : (hours >= 18 && hours < 21 ? "Sunset" : "Night");
-            props.onTimeUpdate(phase, fmt);
+            propsRef.current.onTimeUpdate?.(phase, fmt);
 
             frameCount = 0;
           }
@@ -1854,6 +1877,7 @@
           document.removeEventListener("mousedown", handleMouseDown);
           window.removeEventListener("keydown", handleKeyDown);
           window.removeEventListener("keyup", handleKeyUp);
+          window.removeEventListener("wheel", handleWheel);
           document.removeEventListener("pointerlockchange", handleLockChange);
           window.removeEventListener("resize", handleResize);
           renderer.dispose();
@@ -2026,7 +2050,13 @@
               </div>
 
               {/* Hotbar Slots */}
-              <div className="flex items-center gap-1.5 bg-slate-900/80 border border-slate-800 rounded-2xl p-2 shadow-2xl backdrop-blur-md">
+              <div
+                onWheel={(e) => {
+                  const dir = Math.sign(e.deltaY);
+                  if (dir !== 0) onActiveSlotIndexChange((activeSlotIndex + dir + 9) % 9);
+                }}
+                className="flex items-center gap-1.5 bg-slate-900/80 border border-slate-800 rounded-2xl p-2 shadow-2xl backdrop-blur-md"
+              >
                 {hotbar.map((slot, idx) => {
                   const item = slot.itemId ? ITEM_REGISTRY[slot.itemId] : null;
                   const isSel = idx === activeSlotIndex;
