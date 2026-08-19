@@ -1,0 +1,6 @@
+{
+  "name": "Minecraft Clone",
+  "description": "A modular browser-based 3D voxel engine Minecraft clone built with React, TypeScript, and Three.js.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

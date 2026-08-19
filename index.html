@@ -1,0 +1,2350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Minecraft Clone - Voxel Engine</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Three.js CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <!-- React & ReactDOM CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <!-- Babel Standalone for in-browser JSX transformation -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.6/babel.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body, html { width: 100%; height: 100%; overflow: hidden; background: #020617; font-family: ui-sans-serif, system-ui, -apple-system, sans-serif; }
+    #root { width: 100%; height: 100%; position: relative; }
+    @keyframes spin-slow { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    .animate-spin-slow { animation: spin-slow 20s linear infinite; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useRef, useCallback } = React;
+
+    // ==========================================
+    // 1. CONSTANTS, TYPES & REGISTRIES
+    // ==========================================
+    const BlockType = {
+      AIR: 0,
+      GRASS: 1,
+      DIRT: 2,
+      STONE: 3,
+      WOOD: 4,
+      LEAVES: 5,
+      COAL: 6,
+      IRON: 7,
+      BEDROCK: 8,
+      TORCH: 9,
+      CRAFTING_TABLE: 10,
+      SAND: 11,
+      SANDSTONE: 12,
+      CACTUS: 13,
+      SNOW: 14,
+      WATER: 15,
+      ICE: 16,
+    };
+
+    const BLOCK_CONFIGS = {
+      [BlockType.AIR]: { name: "Air", color: "#000000", isSolid: false },
+      [BlockType.GRASS]: { name: "Grass", color: "#34d399", topColor: "#34d399", sideColor: "#78350f", isSolid: true },
+      [BlockType.DIRT]: { name: "Dirt", color: "#78350f", isSolid: true },
+      [BlockType.STONE]: { name: "Stone", color: "#64748b", isSolid: true },
+      [BlockType.WOOD]: { name: "Wood", color: "#b45309", isSolid: true },
+      [BlockType.LEAVES]: { name: "Leaves", color: "#15803d", isSolid: true, isTransparent: true },
+      [BlockType.COAL]: { name: "Coal Ore", color: "#1e293b", isSolid: true },
+      [BlockType.IRON]: { name: "Iron Ore", color: "#d97706", isSolid: true },
+      [BlockType.BEDROCK]: { name: "Bedrock", color: "#0f172a", isSolid: true },
+      [BlockType.TORCH]: { name: "Torch", color: "#fbbf24", isSolid: false, isLightSource: true },
+      [BlockType.CRAFTING_TABLE]: { name: "Crafting Table", color: "#a16207", isSolid: true },
+      [BlockType.SAND]: { name: "Sand", color: "#fef08a", isSolid: true },
+      [BlockType.SANDSTONE]: { name: "Sandstone", color: "#fde047", isSolid: true },
+      [BlockType.CACTUS]: { name: "Cactus", color: "#16a34a", isSolid: true },
+      [BlockType.SNOW]: { name: "Snow", color: "#f8fafc", isSolid: true },
+      [BlockType.WATER]: { name: "Water", color: "#38bdf8", isSolid: false, isTransparent: true },
+      [BlockType.ICE]: { name: "Ice", color: "#bae6fd", isSolid: true, isTransparent: true },
+    };
+
+    const ITEM_REGISTRY = {
+      "grass_block": { id: "grass_block", name: "Grass Block", type: "block", maxStack: 64, color: "#34d399", emoji: "🌱", blockType: BlockType.GRASS },
+      "dirt": { id: "dirt", name: "Dirt Block", type: "block", maxStack: 64, color: "#78350f", emoji: "🟫", blockType: BlockType.DIRT },
+      "cobblestone": { id: "cobblestone", name: "Cobblestone", type: "block", maxStack: 64, color: "#64748b", emoji: "🪨", blockType: BlockType.STONE },
+      "wood_log": { id: "wood_log", name: "Oak Log", type: "block", maxStack: 64, color: "#b45309", emoji: "🪵", blockType: BlockType.WOOD },
+      "leaves": { id: "leaves", name: "Oak Leaves", type: "block", maxStack: 64, color: "#15803d", emoji: "🍃", blockType: BlockType.LEAVES },
+      "coal_ore": { id: "coal_ore", name: "Coal Ore", type: "block", maxStack: 64, color: "#1e293b", emoji: "⚫", blockType: BlockType.COAL },
+      "iron_ore": { id: "iron_ore", name: "Iron Ore", type: "block", maxStack: 64, color: "#d97706", emoji: "🟨", blockType: BlockType.IRON },
+      "torch": { id: "torch", name: "Torch", type: "block", maxStack: 64, color: "#fbbf24", emoji: "🕯️", blockType: BlockType.TORCH },
+      "crafting_table": { id: "crafting_table", name: "Crafting Table", type: "block", maxStack: 64, color: "#a16207", emoji: "🪵🧱", blockType: BlockType.CRAFTING_TABLE },
+      "sand": { id: "sand", name: "Sand", type: "block", maxStack: 64, color: "#fef08a", emoji: "🏖️", blockType: BlockType.SAND },
+      "sandstone": { id: "sandstone", name: "Sandstone", type: "block", maxStack: 64, color: "#fde047", emoji: "🏜️", blockType: BlockType.SANDSTONE },
+      "cactus": { id: "cactus", name: "Cactus", type: "block", maxStack: 64, color: "#16a34a", emoji: "🌵", blockType: BlockType.CACTUS },
+      "snow": { id: "snow", name: "Snow", type: "block", maxStack: 64, color: "#f8fafc", emoji: "❄️", blockType: BlockType.SNOW },
+      "ice": { id: "ice", name: "Ice", type: "block", maxStack: 64, color: "#bae6fd", emoji: "🧊", blockType: BlockType.ICE },
+      "coal": { id: "coal", name: "Coal", type: "resource", maxStack: 64, color: "#111827", emoji: "💎" },
+      "raw_iron": { id: "raw_iron", name: "Raw Iron", type: "resource", maxStack: 64, color: "#f59e0b", emoji: "🪙" },
+      "stick": { id: "stick", name: "Stick", type: "resource", maxStack: 64, color: "#b45309", emoji: "🥢" },
+      "wood_planks": { id: "wood_planks", name: "Oak Planks", type: "resource", maxStack: 64, color: "#d97706", emoji: "🧱" },
+      "wooden_pickaxe": { id: "wooden_pickaxe", name: "Wooden Pickaxe", type: "tool", maxStack: 1, color: "#b45309", emoji: "🪵⛏️", toolType: "pickaxe", miningSpeedMultiplier: 2.0, maxDurability: 60 },
+      "stone_pickaxe": { id: "stone_pickaxe", name: "Stone Pickaxe", type: "tool", maxStack: 1, color: "#64748b", emoji: "🪨⛏️", toolType: "pickaxe", miningSpeedMultiplier: 4.0, maxDurability: 131 },
+      "iron_pickaxe": { id: "iron_pickaxe", name: "Iron Pickaxe", type: "tool", maxStack: 1, color: "#cbd5e1", emoji: "⚙️⛏️", toolType: "pickaxe", miningSpeedMultiplier: 6.0, maxDurability: 250 },
+      "wooden_axe": { id: "wooden_axe", name: "Wooden Axe", type: "tool", maxStack: 1, color: "#b45309", emoji: "🪵🪓", toolType: "axe", miningSpeedMultiplier: 2.0, maxDurability: 60 },
+      "stone_axe": { id: "stone_axe", name: "Stone Axe", type: "tool", maxStack: 1, color: "#64748b", emoji: "🪨🪓", toolType: "axe", miningSpeedMultiplier: 4.0, maxDurability: 131 },
+      "wooden_sword": { id: "wooden_sword", name: "Wooden Sword", type: "weapon", maxStack: 1, color: "#b45309", emoji: "🪵🗡️", attackDamage: 4, maxDurability: 60 },
+      "stone_sword": { id: "stone_sword", name: "Stone Sword", type: "weapon", maxStack: 1, color: "#64748b", emoji: "🪨🗡️", attackDamage: 6, maxDurability: 131 },
+      "iron_sword": { id: "iron_sword", name: "Iron Sword", type: "weapon", maxStack: 1, color: "#e2e8f0", emoji: "⚙️🗡️", attackDamage: 8, maxDurability: 250 },
+      "cooked_porkchop": { id: "cooked_porkchop", name: "Cooked Porkchop", type: "food", maxStack: 64, color: "#f43f5e", emoji: "🥩", foodRestore: 8 },
+      "apple": { id: "apple", name: "Red Apple", type: "food", maxStack: 64, color: "#ef4444", emoji: "🍎", foodRestore: 4 },
+      "bread": { id: "bread", name: "Fresh Bread", type: "food", maxStack: 64, color: "#f59e0b", emoji: "🍞", foodRestore: 6 },
+      "rotten_flesh": { id: "rotten_flesh", name: "Rotten Flesh", type: "food", maxStack: 64, color: "#15803d", emoji: "🍖", foodRestore: 2 }
+    };
+
+    const BLOCK_DROP_TABLE = {
+      [BlockType.AIR]: null,
+      [BlockType.GRASS]: { itemId: "dirt", minCount: 1, maxCount: 1, requiredTool: "none", hardness: 0.4 },
+      [BlockType.DIRT]: { itemId: "dirt", minCount: 1, maxCount: 1, requiredTool: "none", hardness: 0.4 },
+      [BlockType.STONE]: { itemId: "cobblestone", minCount: 1, maxCount: 1, requiredTool: "pickaxe", hardness: 1.5 },
+      [BlockType.WOOD]: { itemId: "wood_log", minCount: 1, maxCount: 1, requiredTool: "none", hardness: 1.0 },
+      [BlockType.LEAVES]: { itemId: "leaves", minCount: 1, maxCount: 1, requiredTool: "none", hardness: 0.1 },
+      [BlockType.COAL]: { itemId: "coal", minCount: 1, maxCount: 2, requiredTool: "pickaxe", hardness: 2.0 },
+      [BlockType.IRON]: { itemId: "raw_iron", minCount: 1, maxCount: 1, requiredTool: "pickaxe", hardness: 2.5 },
+      [BlockType.BEDROCK]: { itemId: "", minCount: 0, maxCount: 0, requiredTool: "none", hardness: Infinity },
+      [BlockType.TORCH]: { itemId: "torch", minCount: 1, maxCount: 1, requiredTool: "none", hardness: 0.1 },
+      [BlockType.CRAFTING_TABLE]: { itemId: "crafting_table", minCount: 1, maxCount: 1, requiredTool: "none", hardness: 0.8 },
+      [BlockType.SAND]: { itemId: "sand", minCount: 1, maxCount: 1, requiredTool: "none", hardness: 0.5 },
+      [BlockType.SANDSTONE]: { itemId: "sandstone", minCount: 1, maxCount: 1, requiredTool: "none", hardness: 0.8 },
+      [BlockType.CACTUS]: { itemId: "cactus", minCount: 1, maxCount: 1, requiredTool: "none", hardness: 0.4 },
+      [BlockType.SNOW]: { itemId: "snow", minCount: 1, maxCount: 1, requiredTool: "none", hardness: 0.2 },
+      [BlockType.ICE]: { itemId: "ice", minCount: 1, maxCount: 1, requiredTool: "none", hardness: 0.5 },
+      [BlockType.WATER]: null,
+    };
+
+    function checkCraftingRecipe(grid) {
+      const counts = {};
+      let total = 0;
+      for (const id of grid) {
+        if (id) {
+          counts[id] = (counts[id] || 0) + 1;
+          total++;
+        }
+      }
+      if (total === 0) return null;
+      if (total === 4 && counts["wood_planks"] === 4) return { itemId: "crafting_table", count: 1 };
+      if (total === 1 && counts["wood_log"] === 1) return { itemId: "wood_planks", count: 4 };
+      if (total === 2 && counts["wood_planks"] === 2) return { itemId: "stick", count: 4 };
+      if (total === 2 && counts["coal"] === 1 && counts["stick"] === 1) return { itemId: "torch", count: 4 };
+      if (total === 2 && counts["wood_log"] === 1 && counts["stick"] === 1) return { itemId: "torch", count: 4 };
+      if (counts["wood_planks"] === 3 && (counts["stick"] === 2 || counts["stick"] === 1) && (total === 5 || total === 4)) return { itemId: "wooden_pickaxe", count: 1 };
+      if (counts["cobblestone"] === 3 && (counts["stick"] === 2 || counts["stick"] === 1) && (total === 5 || total === 4)) return { itemId: "stone_pickaxe", count: 1 };
+      if (counts["raw_iron"] === 3 && (counts["stick"] === 2 || counts["stick"] === 1) && (total === 5 || total === 4)) return { itemId: "iron_pickaxe", count: 1 };
+      if (((counts["wood_planks"] === 3 && counts["stick"] === 2 && total === 5) || (counts["wood_planks"] === 2 && counts["stick"] === 1 && total === 3))) return { itemId: "wooden_axe", count: 1 };
+      if (((counts["cobblestone"] === 3 && counts["stick"] === 2 && total === 5) || (counts["cobblestone"] === 2 && counts["stick"] === 1 && total === 3))) return { itemId: "stone_axe", count: 1 };
+      if (total === 3 && counts["wood_planks"] === 2 && counts["stick"] === 1) return { itemId: "wooden_sword", count: 1 };
+      if (total === 3 && counts["cobblestone"] === 2 && counts["stick"] === 1) return { itemId: "stone_sword", count: 1 };
+      if (total === 3 && counts["raw_iron"] === 2 && counts["stick"] === 1) return { itemId: "iron_sword", count: 1 };
+      if (total === 3 && counts["leaves"] === 3) return { itemId: "apple", count: 1 };
+      if (total === 3 && counts["wood_log"] === 3) return { itemId: "bread", count: 2 };
+      if (total === 2 && counts["dirt"] === 2) return { itemId: "grass_block", count: 2 };
+      return null;
+    }
+
+    // ==========================================
+    // 2. PROCEDURAL NOISE & TERRAIN GENERATOR
+    // ==========================================
+    function createNoise2D(randomFn) {
+      const p = new Uint8Array(256);
+      for (let i = 0; i < 256; i++) p[i] = i;
+      for (let i = 255; i > 0; i--) {
+        const j = Math.floor(randomFn() * (i + 1));
+        const t = p[i]; p[i] = p[j]; p[j] = t;
+      }
+      const perm = new Uint8Array(512);
+      const permMod12 = new Uint8Array(512);
+      for (let i = 0; i < 512; i++) {
+        perm[i] = p[i & 255];
+        permMod12[i] = perm[i] % 12;
+      }
+      const G2 = (3.0 - Math.sqrt(3.0)) / 6.0;
+      const F2 = 0.5 * (Math.sqrt(3.0) - 1.0);
+      const grad3 = [
+        [1,1,0],[-1,1,0],[1,-1,0],[-1,-1,0],
+        [1,0,1],[-1,0,1],[1,0,-1],[-1,0,-1],
+        [0,1,1],[0,-1,1],[0,1,-1],[0,-1,-1]
+      ];
+
+      return function(xin, yin) {
+        let n0 = 0, n1 = 0, n2 = 0;
+        const s = (xin + yin) * F2;
+        const i = Math.floor(xin + s);
+        const j = Math.floor(yin + s);
+        const t = (i + j) * G2;
+        const X0 = i - t;
+        const Y0 = j - t;
+        const x0 = xin - X0;
+        const y0 = yin - Y0;
+
+        let i1, j1;
+        if (x0 > y0) { i1 = 1; j1 = 0; } else { i1 = 0; j1 = 1; }
+        const x1 = x0 - i1 + G2;
+        const y1 = y0 - j1 + G2;
+        const x2 = x0 - 1.0 + 2.0 * G2;
+        const y2 = y0 - 1.0 + 2.0 * G2;
+
+        const ii = i & 255;
+        const jj = j & 255;
+        const gi0 = permMod12[ii + perm[jj]];
+        const gi1 = permMod12[ii + i1 + perm[jj + j1]];
+        const gi2 = permMod12[ii + 1 + perm[jj + 1]];
+
+        let t0 = 0.5 - x0 * x0 - y0 * y0;
+        if (t0 >= 0) { t0 *= t0; n0 = t0 * t0 * (grad3[gi0][0] * x0 + grad3[gi0][1] * y0); }
+        let t1 = 0.5 - x1 * x1 - y1 * y1;
+        if (t1 >= 0) { t1 *= t1; n1 = t1 * t1 * (grad3[gi1][0] * x1 + grad3[gi1][1] * y1); }
+        let t2 = 0.5 - x2 * x2 - y2 * y2;
+        if (t2 >= 0) { t2 *= t2; n2 = t2 * t2 * (grad3[gi2][0] * x2 + grad3[gi2][1] * y2); }
+
+        return 70.0 * (n0 + n1 + n2);
+      };
+    }
+
+    const CHUNK_SIZE_X = 16;
+    const CHUNK_SIZE_Y = 64;
+    const CHUNK_SIZE_Z = 16;
+    const CHUNK_VOLUME = CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z;
+    const SEA_LEVEL = 21;
+
+    const BiomeType = { OCEAN: "OCEAN", DESERT: "DESERT", PLAINS: "PLAINS", FOREST: "FOREST", SNOWY_TAIGA: "SNOWY_TAIGA" };
+
+    const BIOMES = {
+      [BiomeType.OCEAN]: { type: BiomeType.OCEAN, name: "Ocean & Shore", topBlock: BlockType.SAND, subBlock: BlockType.SAND, baseHeight: 17, amplitude: 5, treeDensity: 0.0, cactusDensity: 0.0 },
+      [BiomeType.DESERT]: { type: BiomeType.DESERT, name: "Desert", topBlock: BlockType.SAND, subBlock: BlockType.SANDSTONE, baseHeight: 25, amplitude: 7, treeDensity: 0.0, cactusDensity: 0.05 },
+      [BiomeType.PLAINS]: { type: BiomeType.PLAINS, name: "Plains", topBlock: BlockType.GRASS, subBlock: BlockType.DIRT, baseHeight: 25, amplitude: 9, treeDensity: 0.012, cactusDensity: 0.0, treeType: "oak" },
+      [BiomeType.FOREST]: { type: BiomeType.FOREST, name: "Forest", topBlock: BlockType.GRASS, subBlock: BlockType.DIRT, baseHeight: 27, amplitude: 14, treeDensity: 0.08, cactusDensity: 0.0, treeType: "oak" },
+      [BiomeType.SNOWY_TAIGA]: { type: BiomeType.SNOWY_TAIGA, name: "Snowy Taiga", topBlock: BlockType.SNOW, subBlock: BlockType.DIRT, baseHeight: 28, amplitude: 12, treeDensity: 0.06, cactusDensity: 0.0, treeType: "spruce" },
+    };
+
+    class TerrainGenerator {
+      constructor(seed) {
+        this.seed = seed ? String(seed) : String(Math.floor(100000000 + Math.random() * 900000000));
+        this.noiseContinental = createNoise2D(this.createRandom(this.seed + "_continental"));
+        this.noiseHills = createNoise2D(this.createRandom(this.seed + "_hills"));
+        this.noisePeaks = createNoise2D(this.createRandom(this.seed + "_peaks"));
+        this.noiseDetail = createNoise2D(this.createRandom(this.seed + "_detail"));
+        this.noiseTemperature = createNoise2D(this.createRandom(this.seed + "_temp"));
+        this.noiseMoisture = createNoise2D(this.createRandom(this.seed + "_moist"));
+        this.noiseCaves = createNoise2D(this.createRandom(this.seed + "_caves1"));
+        this.noiseCaves2 = createNoise2D(this.createRandom(this.seed + "_caves2"));
+        this.noiseOres = createNoise2D(this.createRandom(this.seed + "_ores"));
+        this.noiseFlora = createNoise2D(this.createRandom(this.seed + "_flora"));
+      }
+
+      createRandom(str) {
+        let h = 1779033703 ^ str.length;
+        for (let i = 0; i < str.length; i++) {
+          h = Math.imul(h ^ str.charCodeAt(i), 3432918353);
+          h = (h << 13) | (h >>> 19);
+        }
+        return () => {
+          h = Math.imul(h ^ (h >>> 16), 2246822507);
+          h = Math.imul(h ^ (h >>> 13), 3266489909);
+          return ((h ^= h >>> 16) >>> 0) / 4294967296;
+        };
+      }
+
+      getBiomeAt(worldX, worldZ) {
+        const temp = Math.min(1.0, Math.max(0.0, (this.noiseTemperature(worldX * 0.0035, worldZ * 0.0035) + 1) * 0.5));
+        const moist = Math.min(1.0, Math.max(0.0, (this.noiseMoisture(worldX * 0.0035, worldZ * 0.0035) + 1) * 0.5));
+        const continental = (this.noiseContinental(worldX * 0.0045, worldZ * 0.0045) + 1) * 0.5;
+
+        if (continental < 0.32) return BIOMES[BiomeType.OCEAN];
+        if (temp > 0.62 && moist < 0.38) return BIOMES[BiomeType.DESERT];
+        if (temp < 0.35) return BIOMES[BiomeType.SNOWY_TAIGA];
+        if (moist > 0.52) return BIOMES[BiomeType.FOREST];
+        return BIOMES[BiomeType.PLAINS];
+      }
+
+      getTerrainHeight(worldX, worldZ) {
+        const biome = this.getBiomeAt(worldX, worldZ);
+        const nContinental = this.noiseContinental(worldX * 0.005, worldZ * 0.005);
+        const nHills = this.noiseHills(worldX * 0.018, worldZ * 0.018) * 0.65;
+        const nPeaks = Math.max(0, this.noisePeaks(worldX * 0.03, worldZ * 0.03)) * 1.1;
+        const nDetail = this.noiseDetail(worldX * 0.08, worldZ * 0.08) * 0.25;
+
+        const combined = (nContinental * 0.4 + nHills + nPeaks + nDetail);
+        const height = Math.floor(biome.baseHeight + combined * biome.amplitude);
+        return { height: Math.max(2, Math.min(CHUNK_SIZE_Y - 3, height)), biome };
+      }
+
+      generateChunk(cx, cz) {
+        const blocks = new Uint8Array(CHUNK_VOLUME);
+        const surfaceMap = [];
+
+        for (let x = 0; x < CHUNK_SIZE_X; x++) {
+          for (let z = 0; z < CHUNK_SIZE_Z; z++) {
+            const worldX = cx * CHUNK_SIZE_X + x;
+            const worldZ = cz * CHUNK_SIZE_Z + z;
+            const { height, biome } = this.getTerrainHeight(worldX, worldZ);
+            surfaceMap.push({ x, z, y: height, biome });
+
+            for (let y = 0; y < CHUNK_SIZE_Y; y++) {
+              const idx = x + z * CHUNK_SIZE_X + y * CHUNK_SIZE_X * CHUNK_SIZE_Z;
+              if (y === 0) {
+                blocks[idx] = BlockType.BEDROCK;
+              } else if (y < height) {
+                const depth = height - y;
+                if (depth > 4) {
+                  // 3D Cave carving system
+                  const caveN1 = this.noiseCaves(worldX * 0.045, worldZ * 0.045);
+                  const caveN2 = this.noiseCaves2(worldX * 0.045 + y * 0.09, worldZ * 0.045 + y * 0.09);
+                  const isCave = (y >= 4 && y <= height - 4 && Math.abs(caveN1) < 0.12 && Math.abs(caveN2) < 0.15);
+
+                  if (isCave) {
+                    blocks[idx] = BlockType.AIR;
+                  } else {
+                    const oreNoise = this.noiseOres(worldX * 0.16 + y * 0.25, worldZ * 0.16 + y * 0.25);
+                    if (y < 16 && oreNoise > 0.66) blocks[idx] = BlockType.IRON;
+                    else if (y < 30 && oreNoise < -0.62) blocks[idx] = BlockType.COAL;
+                    else blocks[idx] = BlockType.STONE;
+                  }
+                } else {
+                  blocks[idx] = biome.subBlock;
+                }
+              } else if (y === height) {
+                if (height >= 44) {
+                  blocks[idx] = BlockType.SNOW; // Mountain peaks capped with snow
+                } else if (height <= SEA_LEVEL && biome.type === BiomeType.PLAINS) {
+                  blocks[idx] = BlockType.SAND; // Shorelines
+                } else {
+                  blocks[idx] = biome.topBlock;
+                }
+              } else if (y <= SEA_LEVEL) {
+                blocks[idx] = (biome.type === BiomeType.SNOWY_TAIGA && y === SEA_LEVEL) ? BlockType.ICE : BlockType.WATER;
+              } else {
+                blocks[idx] = BlockType.AIR;
+              }
+            }
+          }
+        }
+
+        // Procedural trees & flora
+        for (const spot of surfaceMap) {
+          const { x: tx, z: tz, y: groundY, biome } = spot;
+          if (groundY <= SEA_LEVEL) continue;
+          const worldX = cx * CHUNK_SIZE_X + tx;
+          const worldZ = cz * CHUNK_SIZE_Z + tz;
+          const floraNoise = (this.noiseFlora(worldX * 0.12, worldZ * 0.12) + 1) * 0.5;
+          const hash = Math.abs((worldX * 73856093) ^ (worldZ * 19349663) ^ (groundY * 83492791)) % 1000 / 1000;
+
+          if (biome.type === BiomeType.DESERT && hash < biome.cactusDensity) {
+            if (tx >= 1 && tx < CHUNK_SIZE_X - 1 && tz >= 1 && tz < CHUNK_SIZE_Z - 1) {
+              const cHeight = 2 + Math.floor(hash * 100) % 3;
+              for (let ch = 1; ch <= cHeight; ch++) {
+                const cy = groundY + ch;
+                if (cy < CHUNK_SIZE_Y) blocks[tx + tz * CHUNK_SIZE_X + cy * CHUNK_SIZE_X * CHUNK_SIZE_Z] = BlockType.CACTUS;
+              }
+            }
+          } else if (hash < biome.treeDensity && biome.treeType) {
+            if (tx >= 2 && tx < CHUNK_SIZE_X - 2 && tz >= 2 && tz < CHUNK_SIZE_Z - 2) {
+              const isSpruce = biome.treeType === "spruce";
+              const treeHeight = isSpruce ? (6 + Math.floor(hash * 10) % 3) : (5 + Math.floor(hash * 10) % 3);
+              for (let h = 1; h <= treeHeight; h++) {
+                const ty = groundY + h;
+                if (ty < CHUNK_SIZE_Y) blocks[tx + tz * CHUNK_SIZE_X + ty * CHUNK_SIZE_X * CHUNK_SIZE_Z] = BlockType.WOOD;
+              }
+              const canopyCenterY = groundY + treeHeight;
+              for (let dy = -2; dy <= 1; dy++) {
+                const ly = canopyCenterY + dy;
+                if (ly >= CHUNK_SIZE_Y) continue;
+                const radius = (isSpruce && dy === 1) ? 1 : (dy >= 0 ? 1 : 2);
+                for (let dx = -radius; dx <= radius; dx++) {
+                  for (let dz = -radius; dz <= radius; dz++) {
+                    if (dx === 0 && dz === 0 && dy <= 0) continue;
+                    const lx = tx + dx, lz = tz + dz;
+                    if (lx >= 0 && lx < CHUNK_SIZE_X && lz >= 0 && lz < CHUNK_SIZE_Z) {
+                      const lidx = lx + lz * CHUNK_SIZE_X + ly * CHUNK_SIZE_X * CHUNK_SIZE_Z;
+                      if (blocks[lidx] === BlockType.AIR) blocks[lidx] = BlockType.LEAVES;
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+        return blocks;
+      }
+    }
+
+    // ==========================================
+    // 3. MESHING & AMBIENT OCCLUSION
+    // ==========================================
+    const FACES = [
+      { dir: [0, 1, 0], vertices: [[0,1,0],[0,1,1],[1,1,1],[1,1,0]], normal: [0, 1, 0], shading: 1.0 },
+      { dir: [0, -1, 0], vertices: [[0,0,0],[1,0,0],[1,0,1],[0,0,1]], normal: [0, -1, 0], shading: 0.5 },
+      { dir: [-1, 0, 0], vertices: [[0,0,0],[0,0,1],[0,1,1],[0,1,0]], normal: [-1, 0, 0], shading: 0.75 },
+      { dir: [1, 0, 0], vertices: [[1,0,1],[1,0,0],[1,1,0],[1,1,1]], normal: [1, 0, 0], shading: 0.75 },
+      { dir: [0, 0, 1], vertices: [[0,0,1],[1,0,1],[1,1,1],[0,1,1]], normal: [0, 0, 1], shading: 0.85 },
+      { dir: [0, 0, -1], vertices: [[1,0,0],[0,0,0],[0,1,0],[1,1,0]], normal: [0, 0, -1], shading: 0.85 },
+    ];
+
+    function buildChunkGeometry(cx, cz, loadedChunks) {
+      const currentChunk = loadedChunks.get(`${cx},${cz}`);
+      if (!currentChunk) return null;
+
+      const positions = [];
+      const normals = [];
+      const colors = [];
+      const indices = [];
+      let vertexCount = 0;
+
+      const getBlockType = (x, y, z) => {
+        if (y < 0 || y >= CHUNK_SIZE_Y) return BlockType.AIR;
+        let targetCx = cx, targetCz = cz, lx = x, lz = z;
+        if (x < 0) { targetCx -= 1; lx = CHUNK_SIZE_X + x; }
+        else if (x >= CHUNK_SIZE_X) { targetCx += 1; lx = x - CHUNK_SIZE_X; }
+        if (z < 0) { targetCz -= 1; lz = CHUNK_SIZE_Z + z; }
+        else if (z >= CHUNK_SIZE_Z) { targetCz += 1; lz = z - CHUNK_SIZE_Z; }
+
+        const blocks = loadedChunks.get(`${targetCx},${targetCz}`);
+        if (!blocks) return BlockType.AIR;
+        return blocks[lx + lz * CHUNK_SIZE_X + y * CHUNK_SIZE_X * CHUNK_SIZE_Z];
+      };
+
+      const hexToRgb = (hex) => {
+        const clean = hex.replace("#", "");
+        return {
+          r: parseInt(clean.substring(0, 2), 16) / 255,
+          g: parseInt(clean.substring(2, 4), 16) / 255,
+          b: parseInt(clean.substring(4, 6), 16) / 255,
+        };
+      };
+
+      const isSolid = (bt) => bt !== BlockType.AIR && bt !== BlockType.TORCH && bt !== BlockType.WATER && bt !== BlockType.LEAVES && bt !== BlockType.CACTUS;
+
+      const shouldRenderFace = (curr, neigh) => {
+        if (neigh === BlockType.AIR || neigh === BlockType.TORCH) return true;
+        const cConfig = BLOCK_CONFIGS[curr];
+        const nConfig = BLOCK_CONFIGS[neigh];
+        if (curr === neigh && cConfig?.isTransparent) return false;
+        if (nConfig?.isTransparent) return true;
+        return false;
+      };
+
+      const computeVertexAo = (fx, fy, fz, fnx, fny, fnz, vx, vy, vz) => {
+        const tx = fx + fnx, ty = fy + fny, tz = fz + fnz;
+        let side1 = false, side2 = false, corner = false;
+        if (fnx !== 0) {
+          const dy = vy === 1 ? 1 : -1, dz = vz === 1 ? 1 : -1;
+          side1 = isSolid(getBlockType(tx, ty + dy, tz));
+          side2 = isSolid(getBlockType(tx, ty, tz + dz));
+          corner = isSolid(getBlockType(tx, ty + dy, tz + dz));
+        } else if (fny !== 0) {
+          const dx = vx === 1 ? 1 : -1, dz = vz === 1 ? 1 : -1;
+          side1 = isSolid(getBlockType(tx + dx, ty, tz));
+          side2 = isSolid(getBlockType(tx, ty, tz + dz));
+          corner = isSolid(getBlockType(tx + dx, ty, tz + dz));
+        } else {
+          const dx = vx === 1 ? 1 : -1, dy = vy === 1 ? 1 : -1;
+          side1 = isSolid(getBlockType(tx + dx, ty, tz));
+          side2 = isSolid(getBlockType(tx, ty + dy, tz));
+          corner = isSolid(getBlockType(tx + dx, ty + dy, tz));
+        }
+        if (side1 && side2) return 0;
+        return 3 - ((side1 ? 1 : 0) + (side2 ? 1 : 0) + (corner ? 1 : 0));
+      };
+
+      const AO_LEVELS = [0.45, 0.68, 0.84, 1.0];
+
+      for (let x = 0; x < CHUNK_SIZE_X; x++) {
+        for (let z = 0; z < CHUNK_SIZE_Z; z++) {
+          for (let y = 0; y < CHUNK_SIZE_Y; y++) {
+            const blockType = currentChunk[x + z * CHUNK_SIZE_X + y * CHUNK_SIZE_X * CHUNK_SIZE_Z];
+            if (blockType === BlockType.AIR) continue;
+
+            const config = BLOCK_CONFIGS[blockType];
+
+            FACES.forEach((face) => {
+              const nx = x + face.dir[0], ny = y + face.dir[1], nz = z + face.dir[2];
+              const neighborType = getBlockType(nx, ny, nz);
+
+              if (shouldRenderFace(blockType, neighborType)) {
+                // Determine face color (special grass top vs side)
+                let faceColorHex = config.color;
+                if (blockType === BlockType.GRASS) {
+                  faceColorHex = face.dir[1] === 1 ? config.topColor : (face.dir[1] === -1 ? config.sideColor : "#5b381e");
+                }
+                const baseColor = hexToRgb(faceColorHex);
+
+                const vertexAos = [];
+                face.vertices.forEach((v) => {
+                  positions.push(cx * CHUNK_SIZE_X + x + v[0], y + v[1], cz * CHUNK_SIZE_Z + z + v[2]);
+                  const ao = computeVertexAo(x, y, z, face.dir[0], face.dir[1], face.dir[2], v[0], v[1], v[2]);
+                  vertexAos.push(ao);
+                  const aoFactor = AO_LEVELS[ao];
+                  colors.push(baseColor.r * face.shading * aoFactor, baseColor.g * face.shading * aoFactor, baseColor.b * face.shading * aoFactor);
+                  normals.push(...face.normal);
+                });
+
+                if (vertexAos[0] + vertexAos[2] > vertexAos[1] + vertexAos[3]) {
+                  indices.push(vertexCount, vertexCount + 1, vertexCount + 2, vertexCount, vertexCount + 2, vertexCount + 3);
+                } else {
+                  indices.push(vertexCount + 1, vertexCount + 2, vertexCount + 3, vertexCount + 1, vertexCount + 3, vertexCount);
+                }
+                vertexCount += 4;
+              }
+            });
+          }
+        }
+      }
+
+      if (vertexCount === 0) return null;
+      const geom = new THREE.BufferGeometry();
+      geom.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+      geom.setAttribute("normal", new THREE.Float32BufferAttribute(normals, 3));
+      geom.setAttribute("color", new THREE.Float32BufferAttribute(colors, 3));
+      geom.setIndex(indices);
+      return geom;
+    }
+
+    // ==========================================
+    // 4. PROCEDURAL HELD ITEM / HAND MESH BUILDER
+    // ==========================================
+    function createHeldItemMesh(itemId) {
+      const group = new THREE.Group();
+      const skinMat = new THREE.MeshStandardMaterial({ color: 0xd4a373, roughness: 0.8 });
+      const sleeveMat = new THREE.MeshStandardMaterial({ color: 0x06b6d4, roughness: 0.7 });
+      const woodMat = new THREE.MeshStandardMaterial({ color: 0x854d0e, roughness: 0.7 });
+
+      // Base arm
+      const arm = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.35, 0.12), skinMat);
+      arm.position.set(0, -0.05, 0);
+      group.add(arm);
+
+      const sleeve = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.15, 0.13), sleeveMat);
+      sleeve.position.set(0, -0.16, 0);
+      group.add(sleeve);
+
+      if (!itemId) {
+        // Just the player hand
+        group.rotation.set(-0.35, -0.3, 0.2);
+        return group;
+      }
+
+      const itemDef = ITEM_REGISTRY[itemId];
+      if (!itemDef) return group;
+
+      if (itemDef.type === "weapon" || itemDef.type === "tool") {
+        const toolColor = itemId.includes("iron") ? 0xe2e8f0 : itemId.includes("stone") ? 0x94a3b8 : 0xb45309;
+        const headMat = new THREE.MeshStandardMaterial({ color: toolColor, roughness: 0.4, metalness: itemId.includes("iron") ? 0.6 : 0.1 });
+
+        // Tool Handle
+        const handle = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.42, 0.04), woodMat);
+        handle.position.set(0.02, 0.16, -0.05);
+        handle.rotation.x = 0.2;
+        group.add(handle);
+
+        if (itemDef.toolType === "pickaxe") {
+          // Curved pickaxe head
+          const head = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.05, 0.05), headMat);
+          head.position.set(0.02, 0.36, -0.09);
+          group.add(head);
+        } else if (itemDef.toolType === "axe") {
+          const head = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.14, 0.05), headMat);
+          head.position.set(0.06, 0.33, -0.08);
+          group.add(head);
+        } else {
+          // Sword Blade
+          const blade = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.38, 0.02), headMat);
+          blade.position.set(0.02, 0.38, -0.09);
+          const crossguard = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.03, 0.05), headMat);
+          crossguard.position.set(0.02, 0.18, -0.05);
+          group.add(blade, crossguard);
+        }
+      } else if (itemId === "torch") {
+        const torchStick = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.32, 0.04), woodMat);
+        torchStick.position.set(0.02, 0.14, -0.04);
+        const head = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.08, 0.05), new THREE.MeshBasicMaterial({ color: 0xfbbf24 }));
+        head.position.set(0.02, 0.3, -0.04);
+        const flameLight = new THREE.PointLight(0xfbbf24, 0.8, 6);
+        flameLight.position.set(0.02, 0.32, -0.04);
+        group.add(torchStick, head, flameLight);
+      } else if (itemDef.type === "block") {
+        // Mini Block in hand
+        const blockColor = parseInt((itemDef.color || "#888888").replace("#", ""), 16);
+        const blockGeom = new THREE.BoxGeometry(0.2, 0.2, 0.2);
+        const blockMat = new THREE.MeshStandardMaterial({ color: blockColor, roughness: 0.6 });
+        const miniBlock = new THREE.Mesh(blockGeom, blockMat);
+        miniBlock.position.set(0.02, 0.18, -0.08);
+        miniBlock.rotation.set(0.3, 0.4, 0.2);
+        group.add(miniBlock);
+      } else {
+        // Resource / Food (Nugget or Slice)
+        const itemColor = parseInt((itemDef.color || "#e2e8f0").replace("#", ""), 16);
+        const itemGeom = new THREE.BoxGeometry(0.12, 0.12, 0.06);
+        const itemMat = new THREE.MeshStandardMaterial({ color: itemColor, roughness: 0.5 });
+        const prop = new THREE.Mesh(itemGeom, itemMat);
+        prop.position.set(0.02, 0.16, -0.06);
+        prop.rotation.set(0.2, 0.3, 0.1);
+        group.add(prop);
+      }
+
+      group.rotation.set(-0.2, -0.2, 0.1);
+      return group;
+    }
+
+    // ==========================================
+    // 5. PROCEDURAL MOBS & AUDIO ENGINE
+    // ==========================================
+    let audioCtx = null;
+    function playSoundEffect(type) {
+      try {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === "suspended") audioCtx.resume();
+        const now = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+
+        if (type === "pickup") {
+          osc.type = "sine";
+          osc.frequency.setValueAtTime(587.33, now);
+          osc.frequency.exponentialRampToValueAtTime(880, now + 0.1);
+          gain.gain.setValueAtTime(0.15, now);
+          gain.gain.linearRampToValueAtTime(0.01, now + 0.12);
+          osc.connect(gain); gain.connect(audioCtx.destination);
+          osc.start(now); osc.stop(now + 0.12);
+        } else if (type === "block_break") {
+          osc.type = "triangle";
+          osc.frequency.setValueAtTime(140, now);
+          osc.frequency.exponentialRampToValueAtTime(40, now + 0.1);
+          gain.gain.setValueAtTime(0.2, now);
+          gain.gain.linearRampToValueAtTime(0.01, now + 0.1);
+          osc.connect(gain); gain.connect(audioCtx.destination);
+          osc.start(now); osc.stop(now + 0.1);
+        } else if (type === "hit") {
+          osc.type = "sawtooth";
+          osc.frequency.setValueAtTime(220, now);
+          osc.frequency.exponentialRampToValueAtTime(80, now + 0.15);
+          gain.gain.setValueAtTime(0.25, now);
+          gain.gain.linearRampToValueAtTime(0.01, now + 0.15);
+          osc.connect(gain); gain.connect(audioCtx.destination);
+          osc.start(now); osc.stop(now + 0.15);
+        } else if (type === "player_hurt") {
+          osc.type = "square";
+          osc.frequency.setValueAtTime(180, now);
+          osc.frequency.exponentialRampToValueAtTime(90, now + 0.2);
+          gain.gain.setValueAtTime(0.3, now);
+          gain.gain.linearRampToValueAtTime(0.01, now + 0.2);
+          osc.connect(gain); gain.connect(audioCtx.destination);
+          osc.start(now); osc.stop(now + 0.2);
+        } else if (type === "eat") {
+          osc.type = "sine";
+          osc.frequency.setValueAtTime(320, now);
+          osc.frequency.exponentialRampToValueAtTime(450, now + 0.1);
+          gain.gain.setValueAtTime(0.18, now);
+          gain.gain.linearRampToValueAtTime(0.01, now + 0.1);
+          osc.connect(gain); gain.connect(audioCtx.destination);
+          osc.start(now); osc.stop(now + 0.1);
+        } else if (type === "player_death") {
+          osc.type = "sawtooth";
+          osc.frequency.setValueAtTime(280, now);
+          osc.frequency.exponentialRampToValueAtTime(50, now + 0.6);
+          gain.gain.setValueAtTime(0.4, now);
+          gain.gain.linearRampToValueAtTime(0.01, now + 0.6);
+          osc.connect(gain); gain.connect(audioCtx.destination);
+          osc.start(now); osc.stop(now + 0.6);
+        } else if (type === "splash" || type === "swim") {
+          osc.type = "sine";
+          osc.frequency.setValueAtTime(280 + Math.random() * 120, now);
+          osc.frequency.exponentialRampToValueAtTime(110, now + 0.15);
+          gain.gain.setValueAtTime(type === "splash" ? 0.22 : 0.12, now);
+          gain.gain.linearRampToValueAtTime(0.01, now + 0.15);
+          osc.connect(gain); gain.connect(audioCtx.destination);
+          osc.start(now); osc.stop(now + 0.15);
+        }
+      } catch (e) {}
+    }
+
+    function createPigMesh() {
+      const group = new THREE.Group();
+      const pinkMat = new THREE.MeshStandardMaterial({ color: 0xf472b6, roughness: 0.7 });
+      const darkPinkMat = new THREE.MeshStandardMaterial({ color: 0xdb2777, roughness: 0.7 });
+      const eyeMat = new THREE.MeshBasicMaterial({ color: 0x0f172a });
+
+      const body = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.7, 1.2), pinkMat);
+      body.position.set(0, 0.65, 0);
+      group.add(body);
+
+      const head = new THREE.Group();
+      head.position.set(0, 0.85, 0.65);
+      const headMesh = new THREE.Mesh(new THREE.BoxGeometry(0.65, 0.65, 0.65), pinkMat);
+      head.add(headMesh);
+      const snout = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.2, 0.15), darkPinkMat);
+      snout.position.set(0, -0.05, 0.35);
+      head.add(snout);
+      const lEye = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.1, 0.02), eyeMat);
+      lEye.position.set(-0.2, 0.08, 0.33);
+      const rEye = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.1, 0.02), eyeMat);
+      rEye.position.set(0.2, 0.08, 0.33);
+      head.add(lEye, rEye);
+      group.add(head);
+
+      const legGeom = new THREE.BoxGeometry(0.25, 0.45, 0.25);
+      const createLeg = (x, z) => {
+        const leg = new THREE.Group();
+        leg.position.set(x, 0.45, z);
+        const m = new THREE.Mesh(legGeom, pinkMat);
+        m.position.set(0, -0.22, 0);
+        leg.add(m);
+        group.add(leg);
+        return leg;
+      };
+
+      return {
+        group,
+        head,
+        leftLegFront: createLeg(-0.3, 0.4),
+        rightLegFront: createLeg(0.3, 0.4),
+        leftLegBack: createLeg(-0.3, -0.4),
+        rightLegBack: createLeg(0.3, -0.4),
+      };
+    }
+
+    function createZombieMesh() {
+      const group = new THREE.Group();
+      const skinMat = new THREE.MeshStandardMaterial({ color: 0x15803d, roughness: 0.8 });
+      const shirtMat = new THREE.MeshStandardMaterial({ color: 0x0284c7, roughness: 0.7 });
+      const pantsMat = new THREE.MeshStandardMaterial({ color: 0x1e1b4b, roughness: 0.8 });
+      const eyeMat = new THREE.MeshBasicMaterial({ color: 0xef4444 });
+
+      const torso = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.9, 0.4), shirtMat);
+      torso.position.set(0, 1.15, 0);
+      group.add(torso);
+
+      const head = new THREE.Group();
+      head.position.set(0, 1.85, 0);
+      head.add(new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.6, 0.6), skinMat));
+      const lEye = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.08, 0.02), eyeMat);
+      lEye.position.set(-0.16, 0.05, 0.31);
+      const rEye = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.08, 0.02), eyeMat);
+      rEye.position.set(0.16, 0.05, 0.31);
+      head.add(lEye, rEye);
+      group.add(head);
+
+      const legGeom = new THREE.BoxGeometry(0.3, 0.8, 0.3);
+      const createLeg = (x) => {
+        const leg = new THREE.Group();
+        leg.position.set(x, 0.8, 0);
+        const m = new THREE.Mesh(legGeom, pantsMat);
+        m.position.set(0, -0.4, 0);
+        leg.add(m);
+        group.add(leg);
+        return leg;
+      };
+      const leftLegFront = createLeg(-0.2);
+      const rightLegFront = createLeg(0.2);
+
+      const armGeom = new THREE.BoxGeometry(0.28, 0.8, 0.28);
+      const createArm = (x) => {
+        const arm = new THREE.Group();
+        arm.position.set(x, 1.5, 0);
+        const m = new THREE.Mesh(armGeom, skinMat);
+        m.position.set(0, -0.35, 0.25);
+        m.rotation.x = -Math.PI / 2.2;
+        arm.add(m);
+        group.add(arm);
+        return arm;
+      };
+      const leftArm = createArm(-0.48);
+      const rightArm = createArm(0.48);
+
+      return { group, head, leftLegFront, rightLegFront, leftArm, rightArm };
+    }
+
+    // ==========================================
+    // 6. MAIN REACT APP COMPONENT
+    // ==========================================
+    function MinecraftApp() {
+      const [worldSeed, setWorldSeed] = useState(() => String(Math.floor(100000000 + Math.random() * 900000000)));
+      const [isLocked, setIsLocked] = useState(false);
+      const [playerPosition, setPlayerPosition] = useState({ x: 0, y: 30, z: 0 });
+      const [facing, setFacing] = useState("South");
+      const [biomeName, setBiomeName] = useState("Plains");
+      const [activeSlotIndex, setActiveSlotIndex] = useState(0);
+      const [isInventoryOpen, setIsInventoryOpen] = useState(false);
+      const [isCraftingTableOpen, setIsCraftingTableOpen] = useState(false);
+
+      // Survival Stats
+      const [health, setHealth] = useState(20);
+      const [hunger, setHunger] = useState(20);
+      const [oxygen, setOxygen] = useState(20);
+      const [isUnderwater, setIsUnderwater] = useState(false);
+      const [mobsKilled, setMobsKilled] = useState(0);
+      const [isHurtFlash, setIsHurtFlash] = useState(false);
+      const [isDead, setIsDead] = useState(false);
+
+      // Time of Day
+      const [timePhase, setTimePhase] = useState("Day");
+      const [timeFormatted, setTimeFormatted] = useState("12:00 PM");
+
+      // Player Inventory: 9 hotbar slots + 27 main inventory slots
+      const [hotbar, setHotbar] = useState([
+        { itemId: "wooden_sword", count: 1, durability: 60 },
+        { itemId: "wooden_pickaxe", count: 1, durability: 60 },
+        { itemId: "wooden_axe", count: 1, durability: 60 },
+        { itemId: "torch", count: 16 },
+        { itemId: "crafting_table", count: 1 },
+        { itemId: "cooked_porkchop", count: 8 },
+        { itemId: "wood_log", count: 16 },
+        { itemId: "cobblestone", count: 32 },
+        { itemId: "dirt", count: 64 },
+      ]);
+      const [inventory, setInventory] = useState(() => Array.from({ length: 27 }, () => ({ itemId: "", count: 0 })));
+
+      // Ref for game loop communication
+      const gameEngineRef = useRef(null);
+
+      const triggerLock = () => {
+        if (isDead) return;
+        setIsInventoryOpen(false);
+        const canvas = document.getElementById("game-canvas");
+        if (canvas) canvas.requestPointerLock();
+      };
+
+      const handleGenerateNewWorld = (customSeed) => {
+        const nextSeed = customSeed ? String(customSeed).trim() : String(Math.floor(100000000 + Math.random() * 900000000));
+        setWorldSeed(nextSeed);
+        setHealth(20);
+        setHunger(20);
+        setOxygen(20);
+        setIsDead(false);
+        setMobsKilled(0);
+        if (gameEngineRef.current?.loadNewWorld) {
+          gameEngineRef.current.loadNewWorld(nextSeed);
+        }
+        triggerLock();
+      };
+
+      const handleRespawn = () => {
+        setHealth(20);
+        setHunger(20);
+        setOxygen(20);
+        setIsDead(false);
+        if (gameEngineRef.current?.respawnPlayer) gameEngineRef.current.respawnPlayer();
+        triggerLock();
+      };
+
+      const handleEatFood = () => {
+        const slot = hotbar[activeSlotIndex];
+        if (!slot || !slot.itemId) return;
+        const itemDef = ITEM_REGISTRY[slot.itemId];
+        if (itemDef?.type === "food" && hunger < 20) {
+          playSoundEffect("eat");
+          gameEngineRef.current?.triggerSwing();
+          setHunger((prev) => Math.min(20, prev + (itemDef.foodRestore || 4)));
+          setHealth((prev) => Math.min(20, prev + 2));
+          setHotbar((prev) => {
+            const next = [...prev];
+            if (next[activeSlotIndex].count > 1) {
+              next[activeSlotIndex].count--;
+            } else {
+              next[activeSlotIndex] = { itemId: "", count: 0 };
+            }
+            return next;
+          });
+        }
+      };
+
+      const handlePlayerHurt = (amount) => {
+        setIsHurtFlash(true);
+        setTimeout(() => setIsHurtFlash(false), 200);
+        playSoundEffect("player_hurt");
+        setHealth((prev) => {
+          const next = Math.max(0, prev - amount);
+          if (next <= 0) {
+            setIsDead(true);
+            playSoundEffect("player_death");
+            if (document.pointerLockElement) document.exitPointerLock();
+          }
+          return next;
+        });
+      };
+
+      return (
+        <div className="relative w-full h-full select-none overflow-hidden bg-slate-950">
+          <GameEngineCanvas
+            ref={gameEngineRef}
+            seed={worldSeed}
+            isLocked={isLocked}
+            setIsLocked={setIsLocked}
+            hotbar={hotbar}
+            setHotbar={setHotbar}
+            inventory={inventory}
+            setInventory={setInventory}
+            activeSlotIndex={activeSlotIndex}
+            setActiveSlotIndex={setActiveSlotIndex}
+            onPositionUpdate={(pos, dir, biome) => {
+              setPlayerPosition(pos);
+              setFacing(dir);
+              if (biome) setBiomeName(biome);
+            }}
+            onTimeUpdate={(phase, formatted) => {
+              setTimePhase(phase);
+              setTimeFormatted(formatted);
+            }}
+            onPlayerHurt={handlePlayerHurt}
+            onOxygenUpdate={(ox, submerged) => {
+              setOxygen(ox);
+              setIsUnderwater(submerged);
+            }}
+            onMobKilled={() => setMobsKilled((k) => k + 1)}
+            onOpenInventory={() => setIsInventoryOpen(true)}
+            onOpenCraftingTable={() => {
+              setIsCraftingTableOpen(true);
+              setIsInventoryOpen(true);
+            }}
+            isDead={isDead}
+          />
+
+          {/* HUD Overlay */}
+          <HUD
+            isLocked={isLocked}
+            position={playerPosition}
+            facing={facing}
+            biomeName={biomeName}
+            worldSeed={worldSeed}
+            activeSlotIndex={activeSlotIndex}
+            onActiveSlotIndexChange={setActiveSlotIndex}
+            hotbar={hotbar}
+            timePhase={timePhase}
+            timeFormatted={timeFormatted}
+            onCycleTime={() => gameEngineRef.current?.cycleTime()}
+            onGenerateNewWorld={handleGenerateNewWorld}
+            health={health}
+            hunger={hunger}
+            oxygen={oxygen}
+            isUnderwater={isUnderwater}
+            mobsKilled={mobsKilled}
+            isHurtFlash={isHurtFlash}
+            isDead={isDead}
+            onRespawn={handleRespawn}
+            onEatFood={handleEatFood}
+          />
+
+          {/* Start Screen Modal */}
+          {!isLocked && !isInventoryOpen && !isDead && (
+            <StartModal
+              seed={worldSeed}
+              onPlay={triggerLock}
+              onGenerateNewWorld={handleGenerateNewWorld}
+            />
+          )}
+
+          {/* Inventory & Crafting Modal */}
+          {isInventoryOpen && (
+            <InventoryModal
+              isOpen={isInventoryOpen}
+              onClose={() => {
+                setIsInventoryOpen(false);
+                setIsCraftingTableOpen(false);
+              }}
+              inventory={inventory}
+              hotbar={hotbar}
+              onInventoryChange={setInventory}
+              onHotbarChange={setHotbar}
+              isCraftingTableOpen={isCraftingTableOpen}
+              onDropItem={(itemId, count) => gameEngineRef.current?.spawnDrop(itemId, count)}
+            />
+          )}
+        </div>
+      );
+    }
+
+    // ==========================================
+    // 7. GAME ENGINE & THREE.JS CANVAS
+    // ==========================================
+    const GameEngineCanvas = React.forwardRef((props, ref) => {
+      const canvasRef = useRef(null);
+      const stateRef = useRef({
+        scene: null,
+        camera: null,
+        renderer: null,
+        handGroup: null,
+        currentHeldItemId: "__NONE__",
+        swingProgress: 0,
+        chunks: new Map(),
+        chunkMeshes: new Map(),
+        generator: new TerrainGenerator(props.seed),
+        playerPos: new THREE.Vector3(0.5, 32, 0.5),
+        playerVel: new THREE.Vector3(0, 0, 0),
+        keys: { w: false, a: false, s: false, d: false, space: false, shift: false },
+        isGrounded: true,
+        wasInWater: false,
+        lastSwimSoundTime: 0,
+        oxygen: 20,
+        drownDamageTimer: 0,
+        pitch: 0,
+        yaw: 0,
+        timeOfDay: 0.5,
+        mobs: [],
+        itemDrops: [],
+        particles: [],
+        torches: new Map(),
+        spawnMob: null,
+      });
+
+      // Expose imperative methods to parent
+      React.useImperativeHandle(ref, () => ({
+        cycleTime: () => {
+          stateRef.current.timeOfDay = (stateRef.current.timeOfDay + 0.25) % 1.0;
+        },
+        triggerSwing: () => {
+          stateRef.current.swingProgress = 1.0;
+        },
+        spawnDrop: (itemId, count) => {
+          spawnWorldDrop(stateRef.current.playerPos.clone(), itemId, count);
+        },
+        respawnPlayer: () => {
+          const { generator, playerPos, playerVel, mobs, scene } = stateRef.current;
+          const { height } = generator.getTerrainHeight(0, 0);
+          playerPos.set(0.5, height + 2, 0.5);
+          playerVel.set(0, 0, 0);
+
+          // Clear any mobs immediately around spawn on respawn
+          stateRef.current.mobs = mobs.filter((m) => {
+            if (m.position.distanceTo(playerPos) < 25) {
+              if (scene && m.group) scene.remove(m.group);
+              return false;
+            }
+            return true;
+          });
+        },
+        loadNewWorld: (newSeed) => {
+          const { scene } = stateRef.current;
+          if (!scene) return;
+
+          // Remove all chunk meshes from scene & dispose geometry
+          stateRef.current.chunkMeshes.forEach((mesh) => {
+            scene.remove(mesh);
+            if (mesh.geometry) mesh.geometry.dispose();
+          });
+          stateRef.current.chunkMeshes.clear();
+          stateRef.current.chunks.clear();
+
+          // Remove torches
+          stateRef.current.torches.forEach((t) => {
+            if (t.mesh) {
+              scene.remove(t.mesh);
+              if (t.mesh.geometry) t.mesh.geometry.dispose();
+            }
+          });
+          stateRef.current.torches.clear();
+
+          // Remove item drops
+          stateRef.current.itemDrops.forEach((d) => {
+            if (d.mesh) {
+              scene.remove(d.mesh);
+              if (d.mesh.geometry) d.mesh.geometry.dispose();
+            }
+          });
+          stateRef.current.itemDrops = [];
+
+          // Remove mobs
+          stateRef.current.mobs.forEach((m) => {
+            if (m.group) scene.remove(m.group);
+          });
+          stateRef.current.mobs = [];
+
+          // Re-initialize terrain generator with new seed
+          const nextGen = new TerrainGenerator(newSeed);
+          stateRef.current.generator = nextGen;
+
+          // Preload chunks around spawn
+          const RENDER_DIST = 4;
+          const chunkMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.8 });
+          for (let cx = -RENDER_DIST; cx <= RENDER_DIST; cx++) {
+            for (let cz = -RENDER_DIST; cz <= RENDER_DIST; cz++) {
+              const key = `${cx},${cz}`;
+              const blocks = nextGen.generateChunk(cx, cz);
+              stateRef.current.chunks.set(key, blocks);
+              const geom = buildChunkGeometry(cx, cz, stateRef.current.chunks);
+              if (geom) {
+                const mesh = new THREE.Mesh(geom, chunkMat);
+                scene.add(mesh);
+                stateRef.current.chunkMeshes.set(key, mesh);
+              }
+            }
+          }
+
+          // Reset player position to safe surface
+          const { height, biome } = nextGen.getTerrainHeight(0, 0);
+          stateRef.current.playerPos.set(0.5, height + 2, 0.5);
+          stateRef.current.playerVel.set(0, 0, 0);
+          stateRef.current.oxygen = 20;
+
+          // Spawn new mobs at safe distance
+          if (stateRef.current.spawnMob) {
+            for (let i = 0; i < 4; i++) stateRef.current.spawnMob("pig");
+            for (let i = 0; i < 3; i++) stateRef.current.spawnMob("zombie");
+          }
+
+          // Notify parent
+          props.onPositionUpdate(stateRef.current.playerPos.clone(), "South", biome.name);
+        },
+      }));
+
+      const spawnWorldDrop = (pos, itemId, count) => {
+        const itemDef = ITEM_REGISTRY[itemId];
+        if (!itemDef) return;
+        const geom = new THREE.BoxGeometry(0.25, 0.25, 0.25);
+        const mat = new THREE.MeshStandardMaterial({ color: itemDef.color || 0xffffff, roughness: 0.5 });
+        const mesh = new THREE.Mesh(geom, mat);
+        mesh.position.copy(pos).add(new THREE.Vector3((Math.random() - 0.5) * 0.3, 0.2, (Math.random() - 0.5) * 0.3));
+        stateRef.current.scene.add(mesh);
+
+        stateRef.current.itemDrops.push({
+          itemId,
+          count,
+          mesh,
+          position: mesh.position,
+          velocity: new THREE.Vector3((Math.random() - 0.5) * 2, 3, (Math.random() - 0.5) * 2),
+          onGround: false,
+          spawnTime: performance.now(),
+        });
+      };
+
+      useEffect(() => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color("#87CEEB");
+        scene.fog = new THREE.FogExp2("#87CEEB", 0.015);
+        stateRef.current.scene = scene;
+
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.rotation.order = "YXZ";
+        scene.add(camera);
+        stateRef.current.camera = camera;
+
+        // Create first-person hand container attached to camera
+        const handContainer = new THREE.Group();
+        handContainer.position.set(0.32, -0.28, -0.48);
+        camera.add(handContainer);
+        stateRef.current.handGroup = handContainer;
+
+        const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.shadowMap.enabled = true;
+        stateRef.current.renderer = renderer;
+
+        // Lighting
+        const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.6);
+        scene.add(hemiLight);
+
+        const dirLight = new THREE.DirectionalLight(0xfffaed, 1.1);
+        dirLight.position.set(50, 100, 50);
+        scene.add(dirLight);
+
+        // Sun & Moon Spheres
+        const sun = new THREE.Mesh(new THREE.SphereGeometry(4, 16, 16), new THREE.MeshBasicMaterial({ color: 0xfff700 }));
+        const moon = new THREE.Mesh(new THREE.SphereGeometry(3, 16, 16), new THREE.MeshBasicMaterial({ color: 0xe2e8f0 }));
+        scene.add(sun, moon);
+
+        // Spawn world terrain chunks
+        const generator = stateRef.current.generator;
+        const RENDER_DIST = 4;
+        const chunkMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.8 });
+
+        const ensureChunkLoaded = (cx, cz) => {
+          const key = `${cx},${cz}`;
+          if (!stateRef.current.chunks.has(key)) {
+            const blocks = generator.generateChunk(cx, cz);
+            stateRef.current.chunks.set(key, blocks);
+            const geom = buildChunkGeometry(cx, cz, stateRef.current.chunks);
+            if (geom) {
+              const mesh = new THREE.Mesh(geom, chunkMat);
+              scene.add(mesh);
+              stateRef.current.chunkMeshes.set(key, mesh);
+            }
+          }
+        };
+
+        for (let cx = -RENDER_DIST; cx <= RENDER_DIST; cx++) {
+          for (let cz = -RENDER_DIST; cz <= RENDER_DIST; cz++) {
+            ensureChunkLoaded(cx, cz);
+          }
+        }
+
+        // Resolve initial player spawn position safely
+        const spawnHeight = generator.getTerrainHeight(0, 0).height;
+        stateRef.current.playerPos.set(0.5, spawnHeight + 2, 0.5);
+
+        // Safe Mob Spawner - Guarantee mobs never spawn close to player start
+        const spawnMobAtSafeDistance = (type) => {
+          // Choose distance between 28 and 50 blocks away from (0,0)
+          const angle = Math.random() * Math.PI * 2;
+          const dist = type === "zombie" ? (32 + Math.random() * 20) : (22 + Math.random() * 20);
+          const x = Math.floor(Math.cos(angle) * dist);
+          const z = Math.floor(Math.sin(angle) * dist);
+
+          // Make sure chunk is loaded
+          const cx = Math.floor(x / CHUNK_SIZE_X);
+          const cz = Math.floor(z / CHUNK_SIZE_Z);
+          ensureChunkLoaded(cx, cz);
+
+          const groundY = generator.getTerrainHeight(x, z).height;
+          const mobData = type === "pig" ? createPigMesh() : createZombieMesh();
+          mobData.group.position.set(x + 0.5, groundY + 1, z + 0.5);
+          scene.add(mobData.group);
+
+          stateRef.current.mobs.push({
+            id: Math.random().toString(36),
+            type,
+            position: mobData.group.position,
+            velocity: new THREE.Vector3(),
+            rotationY: Math.random() * Math.PI * 2,
+            health: type === "pig" ? 10 : 20,
+            maxHealth: type === "pig" ? 10 : 20,
+            group: mobData.group,
+            head: mobData.head,
+            leftLegFront: mobData.leftLegFront,
+            rightLegFront: mobData.rightLegFront,
+            leftArm: mobData.leftArm,
+            rightArm: mobData.rightArm,
+            walkTimer: Math.random() * 5,
+            targetDirection: new THREE.Vector3(),
+            isHostile: type === "zombie",
+            attackCooldown: 0,
+            hitTimer: 0,
+          });
+        };
+
+        stateRef.current.spawnMob = spawnMobAtSafeDistance;
+
+        // Spawn 4 pigs & 3 zombies safely outside the player spawn radius
+        for (let i = 0; i < 4; i++) spawnMobAtSafeDistance("pig");
+        for (let i = 0; i < 3; i++) spawnMobAtSafeDistance("zombie");
+
+        // Voxel check helpers
+        const getVoxelTypeAt = (bx, by, bz) => {
+          if (by < 0 || by >= CHUNK_SIZE_Y) return BlockType.AIR;
+          const cx = Math.floor(bx / CHUNK_SIZE_X), cz = Math.floor(bz / CHUNK_SIZE_Z);
+          const b = stateRef.current.chunks.get(`${cx},${cz}`);
+          if (!b) {
+            // Auto generate chunk if queried near player border
+            const newB = generator.generateChunk(cx, cz);
+            stateRef.current.chunks.set(`${cx},${cz}`, newB);
+            const geom = buildChunkGeometry(cx, cz, stateRef.current.chunks);
+            if (geom) {
+              const mesh = new THREE.Mesh(geom, chunkMat);
+              scene.add(mesh);
+              stateRef.current.chunkMeshes.set(`${cx},${cz}`, mesh);
+            }
+            return BlockType.AIR;
+          }
+          const lx = ((bx % CHUNK_SIZE_X) + CHUNK_SIZE_X) % CHUNK_SIZE_X;
+          const lz = ((bz % CHUNK_SIZE_Z) + CHUNK_SIZE_Z) % CHUNK_SIZE_Z;
+          return b[lx + lz * CHUNK_SIZE_X + by * CHUNK_SIZE_X * CHUNK_SIZE_Z];
+        };
+
+        const isVoxelSolidAt = (bx, by, bz) => {
+          const bt = getVoxelTypeAt(bx, by, bz);
+          return BLOCK_CONFIGS[bt]?.isSolid ?? false;
+        };
+
+        const isVoxelWaterAt = (bx, by, bz) => {
+          const bt = getVoxelTypeAt(bx, by, bz);
+          return bt === BlockType.WATER;
+        };
+
+        // Block Raycasting Helper
+        const raycastVoxel = (maxDist = 6) => {
+          const origin = stateRef.current.playerPos.clone().add(new THREE.Vector3(0, 1.6, 0));
+          const dir = new THREE.Vector3(0, 0, -1).applyEuler(camera.rotation).normalize();
+          let px = Math.floor(origin.x), py = Math.floor(origin.y), pz = Math.floor(origin.z);
+          const stepX = Math.sign(dir.x), stepY = Math.sign(dir.y), stepZ = Math.sign(dir.z);
+          const tDeltaX = Math.abs(1 / dir.x), tDeltaY = Math.abs(1 / dir.y), tDeltaZ = Math.abs(1 / dir.z);
+          let tMaxX = tDeltaX === Infinity ? Infinity : (stepX > 0 ? px + 1 - origin.x : origin.x - px) * tDeltaX;
+          let tMaxY = tDeltaY === Infinity ? Infinity : (stepY > 0 ? py + 1 - origin.y : origin.y - py) * tDeltaY;
+          let tMaxZ = tDeltaZ === Infinity ? Infinity : (stepZ > 0 ? pz + 1 - origin.z : origin.z - pz) * tDeltaZ;
+          let dist = 0, normal = [0, 1, 0];
+
+          while (dist < maxDist) {
+            if (tMaxX < tMaxY) {
+              if (tMaxX < tMaxZ) { px += stepX; dist = tMaxX; tMaxX += tDeltaX; normal = [-stepX, 0, 0]; }
+              else { pz += stepZ; dist = tMaxZ; tMaxZ += tDeltaZ; normal = [0, 0, -stepZ]; }
+            } else {
+              if (tMaxY < tMaxZ) { py += stepY; dist = tMaxY; tMaxY += tDeltaY; normal = [0, -stepY, 0]; }
+              else { pz += stepZ; dist = tMaxZ; tMaxZ += tDeltaZ; normal = [0, 0, -stepZ]; }
+            }
+
+            const cx = Math.floor(px / CHUNK_SIZE_X), cz = Math.floor(pz / CHUNK_SIZE_Z);
+            const blocks = stateRef.current.chunks.get(`${cx},${cz}`);
+            if (blocks && py >= 0 && py < CHUNK_SIZE_Y) {
+              const lx = ((px % CHUNK_SIZE_X) + CHUNK_SIZE_X) % CHUNK_SIZE_X;
+              const lz = ((pz % CHUNK_SIZE_Z) + CHUNK_SIZE_Z) % CHUNK_SIZE_Z;
+              const bt = blocks[lx + lz * CHUNK_SIZE_X + py * CHUNK_SIZE_X * CHUNK_SIZE_Z];
+              if (bt !== BlockType.AIR && bt !== BlockType.WATER) {
+                return { hit: true, blockX: px, blockY: py, blockZ: pz, blockType: bt, normal, distance: dist };
+              }
+            }
+          }
+          return { hit: false };
+        };
+
+        // Pointer Lock & Mouse Controls
+        const handleMouseMove = (e) => {
+          if (document.pointerLockElement !== canvas) return;
+          const sens = 0.0022;
+          stateRef.current.yaw -= e.movementX * sens;
+          stateRef.current.pitch -= e.movementY * sens;
+          stateRef.current.pitch = Math.max(-Math.PI / 2.05, Math.min(Math.PI / 2.05, stateRef.current.pitch));
+          camera.rotation.y = stateRef.current.yaw;
+          camera.rotation.x = stateRef.current.pitch;
+        };
+
+        const handleMouseDown = (e) => {
+          if (document.pointerLockElement !== canvas) return;
+          stateRef.current.swingProgress = 1.0; // Trigger hand swing animation
+
+          const hitData = raycastVoxel(5.5);
+
+          // 1. Attack Mobs (Left Click)
+          if (e.button === 0) {
+            const playerEye = stateRef.current.playerPos.clone().add(new THREE.Vector3(0, 1.6, 0));
+            const lookDir = new THREE.Vector3(0, 0, -1).applyEuler(camera.rotation).normalize();
+            let hitMob = null;
+
+            for (const mob of stateRef.current.mobs) {
+              const dist = mob.position.distanceTo(playerEye);
+              if (dist < 3.8) {
+                const toMob = mob.position.clone().sub(playerEye).normalize();
+                if (lookDir.dot(toMob) > 0.6) {
+                  hitMob = mob;
+                  break;
+                }
+              }
+            }
+
+            if (hitMob) {
+              playSoundEffect("hit");
+              const slot = props.hotbar[props.activeSlotIndex];
+              const itemDef = slot?.itemId ? ITEM_REGISTRY[slot.itemId] : null;
+              const dmg = itemDef?.attackDamage || 2;
+              hitMob.health -= dmg;
+              hitMob.hitTimer = 0.25;
+              hitMob.velocity.add(lookDir.clone().multiplyScalar(6).setY(3));
+
+              if (hitMob.health <= 0) {
+                props.onMobKilled();
+                scene.remove(hitMob.group);
+                stateRef.current.mobs = stateRef.current.mobs.filter((m) => m !== hitMob);
+                if (hitMob.type === "pig") spawnWorldDrop(hitMob.position, "cooked_porkchop", 2);
+                else spawnWorldDrop(hitMob.position, "rotten_flesh", 2);
+              }
+              return;
+            }
+
+            // Break Block
+            if (hitData.hit && hitData.blockType !== BlockType.BEDROCK) {
+              playSoundEffect("block_break");
+              const cx = Math.floor(hitData.blockX / CHUNK_SIZE_X);
+              const cz = Math.floor(hitData.blockZ / CHUNK_SIZE_Z);
+              const blocks = stateRef.current.chunks.get(`${cx},${cz}`);
+              const lx = ((hitData.blockX % CHUNK_SIZE_X) + CHUNK_SIZE_X) % CHUNK_SIZE_X;
+              const lz = ((hitData.blockZ % CHUNK_SIZE_Z) + CHUNK_SIZE_Z) % CHUNK_SIZE_Z;
+              blocks[lx + lz * CHUNK_SIZE_X + hitData.blockY * CHUNK_SIZE_X * CHUNK_SIZE_Z] = BlockType.AIR;
+
+              // Rebuild affected chunk mesh
+              const geom = buildChunkGeometry(cx, cz, stateRef.current.chunks);
+              const oldMesh = stateRef.current.chunkMeshes.get(`${cx},${cz}`);
+              if (oldMesh) scene.remove(oldMesh);
+              if (geom) {
+                const m = new THREE.Mesh(geom, chunkMat);
+                scene.add(m);
+                stateRef.current.chunkMeshes.set(`${cx},${cz}`, m);
+              }
+
+              // Spawn Drop
+              const dropInfo = BLOCK_DROP_TABLE[hitData.blockType];
+              if (dropInfo?.itemId) {
+                spawnWorldDrop(new THREE.Vector3(hitData.blockX + 0.5, hitData.blockY + 0.5, hitData.blockZ + 0.5), dropInfo.itemId, dropInfo.minCount);
+              }
+            }
+          }
+
+          // 2. Place Block / Interact (Right Click)
+          else if (e.button === 2) {
+            if (hitData.hit) {
+              if (hitData.blockType === BlockType.CRAFTING_TABLE) {
+                props.onOpenCraftingTable();
+                if (document.pointerLockElement) document.exitPointerLock();
+                return;
+              }
+
+              const slot = props.hotbar[props.activeSlotIndex];
+              const itemDef = slot?.itemId ? ITEM_REGISTRY[slot.itemId] : null;
+
+              if (itemDef?.type === "food") {
+                props.onEatFood?.();
+                return;
+              }
+
+              if (itemDef?.blockType) {
+                const px = hitData.blockX + hitData.normal[0];
+                const py = hitData.blockY + hitData.normal[1];
+                const pz = hitData.blockZ + hitData.normal[2];
+
+                // Check collision with player AABB
+                const pMinX = stateRef.current.playerPos.x - 0.35, pMaxX = stateRef.current.playerPos.x + 0.35;
+                const pMinY = stateRef.current.playerPos.y, pMaxY = stateRef.current.playerPos.y + 1.8;
+                const pMinZ = stateRef.current.playerPos.z - 0.35, pMaxZ = stateRef.current.playerPos.z + 0.35;
+
+                if (px < pMaxX && px + 1 > pMinX && py < pMaxY && py + 1 > pMinY && pz < pMaxZ && pz + 1 > pMinZ) {
+                  return; // Block would collide with player
+                }
+
+                const cx = Math.floor(px / CHUNK_SIZE_X);
+                const cz = Math.floor(pz / CHUNK_SIZE_Z);
+                const blocks = stateRef.current.chunks.get(`${cx},${cz}`);
+                if (blocks && py >= 0 && py < CHUNK_SIZE_Y) {
+                  const lx = ((px % CHUNK_SIZE_X) + CHUNK_SIZE_X) % CHUNK_SIZE_X;
+                  const lz = ((pz % CHUNK_SIZE_Z) + CHUNK_SIZE_Z) % CHUNK_SIZE_Z;
+                  blocks[lx + lz * CHUNK_SIZE_X + py * CHUNK_SIZE_X * CHUNK_SIZE_Z] = itemDef.blockType;
+
+                  // Deduct hotbar item
+                  props.setHotbar((prev) => {
+                    const next = [...prev];
+                    if (next[props.activeSlotIndex].count > 1) {
+                      next[props.activeSlotIndex].count--;
+                    } else {
+                      next[props.activeSlotIndex] = { itemId: "", count: 0 };
+                    }
+                    return next;
+                  });
+
+                  const geom = buildChunkGeometry(cx, cz, stateRef.current.chunks);
+                  const oldMesh = stateRef.current.chunkMeshes.get(`${cx},${cz}`);
+                  if (oldMesh) scene.remove(oldMesh);
+                  if (geom) {
+                    const m = new THREE.Mesh(geom, chunkMat);
+                    scene.add(m);
+                    stateRef.current.chunkMeshes.set(`${cx},${cz}`, m);
+                  }
+                }
+              }
+            }
+          }
+        };
+
+        // Key Listeners
+        const handleKeyDown = (e) => {
+          if (e.code === "KeyW") stateRef.current.keys.w = true;
+          if (e.code === "KeyS") stateRef.current.keys.s = true;
+          if (e.code === "KeyA") stateRef.current.keys.a = true;
+          if (e.code === "KeyD") stateRef.current.keys.d = true;
+          if (e.code === "Space") stateRef.current.keys.space = true;
+          if (e.code === "ShiftLeft" || e.code === "ShiftRight") stateRef.current.keys.shift = true;
+          if (e.code === "KeyE") {
+            if (document.pointerLockElement) document.exitPointerLock();
+            props.onOpenInventory();
+          }
+          if (e.code === "KeyT") {
+            stateRef.current.timeOfDay = (stateRef.current.timeOfDay + 0.25) % 1.0;
+          }
+          if (e.code === "KeyR") {
+            const { generator, playerPos } = stateRef.current;
+            const h = generator.getTerrainHeight(Math.floor(playerPos.x), Math.floor(playerPos.z)).height;
+            playerPos.y = h + 2;
+          }
+          if (e.key >= "1" && e.key <= "9") {
+            props.setActiveSlotIndex(parseInt(e.key, 10) - 1);
+          }
+        };
+
+        const handleKeyUp = (e) => {
+          if (e.code === "KeyW") stateRef.current.keys.w = false;
+          if (e.code === "KeyS") stateRef.current.keys.s = false;
+          if (e.code === "KeyA") stateRef.current.keys.a = false;
+          if (e.code === "KeyD") stateRef.current.keys.d = false;
+          if (e.code === "Space") stateRef.current.keys.space = false;
+          if (e.code === "ShiftLeft" || e.code === "ShiftRight") stateRef.current.keys.shift = false;
+        };
+
+        const handleLockChange = () => {
+          const locked = document.pointerLockElement === canvas;
+          props.setIsLocked(locked);
+        };
+
+        document.addEventListener("mousemove", handleMouseMove);
+        document.addEventListener("mousedown", handleMouseDown);
+        window.addEventListener("keydown", handleKeyDown);
+        window.addEventListener("keyup", handleKeyUp);
+        document.addEventListener("pointerlockchange", handleLockChange);
+
+        // Resize Listener
+        const handleResize = () => {
+          camera.aspect = window.innerWidth / window.innerHeight;
+          camera.updateProjectionMatrix();
+          renderer.setSize(window.innerWidth, window.innerHeight);
+        };
+        window.addEventListener("resize", handleResize);
+
+        // ==========================================
+        // MAIN GAME ANIMATION LOOP
+        // ==========================================
+        let lastTime = performance.now();
+        let frameCount = 0;
+        let animId;
+
+        const loop = (now) => {
+          animId = requestAnimationFrame(loop);
+          const dt = Math.min((now - lastTime) / 1000, 0.1);
+          lastTime = now;
+
+          const { playerPos, playerVel, keys, mobs, itemDrops } = stateRef.current;
+
+          // 1. Update Held Item Mesh if Active Hotbar Slot Changed
+          const activeSlot = props.hotbar[props.activeSlotIndex];
+          const activeItemId = activeSlot?.itemId || "";
+          if (stateRef.current.currentHeldItemId !== activeItemId) {
+            stateRef.current.currentHeldItemId = activeItemId;
+            // Clear previous hand children
+            while (handContainer.children.length > 0) {
+              handContainer.remove(handContainer.children[0]);
+            }
+            const newHandMesh = createHeldItemMesh(activeItemId);
+            handContainer.add(newHandMesh);
+          }
+
+          // Animate Hand Bobbing & Swing
+          if (stateRef.current.swingProgress > 0) {
+            stateRef.current.swingProgress = Math.max(0, stateRef.current.swingProgress - dt * 5.0);
+          }
+          const isWalking = (keys.w || keys.s || keys.a || keys.d) && stateRef.current.isGrounded;
+          const bobX = isWalking ? Math.cos(now * 0.008) * 0.015 : 0;
+          const bobY = isWalking ? Math.abs(Math.sin(now * 0.016)) * 0.02 : 0;
+          const swingAmount = Math.sin(stateRef.current.swingProgress * Math.PI);
+
+          handContainer.position.set(
+            0.32 + bobX - swingAmount * 0.08,
+            -0.28 + bobY - swingAmount * 0.06,
+            -0.48 - swingAmount * 0.08
+          );
+          handContainer.rotation.set(
+            -swingAmount * 0.7,
+            -swingAmount * 0.4,
+            swingAmount * 0.3
+          );
+
+          // 2. Day / Night Celestial Updates & Water Atmosphere
+          stateRef.current.timeOfDay = (stateRef.current.timeOfDay + dt * 0.005) % 1.0;
+          const t = stateRef.current.timeOfDay;
+          const sunAngle = t * Math.PI * 2 - Math.PI / 2;
+          const sunX = playerPos.x + Math.cos(sunAngle) * 120;
+          const sunY = Math.sin(sunAngle) * 120;
+          const sunZ = playerPos.z + 40;
+          sun.position.set(sunX, sunY, sunZ);
+          moon.position.set(playerPos.x - Math.cos(sunAngle) * 120, -sunY, playerPos.z - 40);
+
+          // Sample water blocks at player bounding box heights
+          const playerFeetWater = isVoxelWaterAt(Math.floor(playerPos.x), Math.floor(playerPos.y + 0.15), Math.floor(playerPos.z));
+          const playerWaistWater = isVoxelWaterAt(Math.floor(playerPos.x), Math.floor(playerPos.y + 0.85), Math.floor(playerPos.z));
+          const playerHeadWater = isVoxelWaterAt(Math.floor(playerPos.x), Math.floor(playerPos.y + 1.55), Math.floor(playerPos.z));
+          const isInWater = playerFeetWater || playerWaistWater || playerHeadWater;
+          const isHeadSubmerged = playerHeadWater;
+
+          // Splash sound on entering or exiting water
+          if (isInWater && !stateRef.current.wasInWater) {
+            playSoundEffect("splash");
+          } else if (!isInWater && stateRef.current.wasInWater) {
+            playSoundEffect("splash");
+          }
+          stateRef.current.wasInWater = isInWater;
+
+          // Oxygen / Drowning Logic
+          if (isHeadSubmerged) {
+            stateRef.current.oxygen = Math.max(0, stateRef.current.oxygen - dt * 1.5);
+            if (stateRef.current.oxygen <= 0) {
+              stateRef.current.drownDamageTimer += dt;
+              if (stateRef.current.drownDamageTimer >= 1.5) {
+                props.onPlayerHurt?.(2);
+                stateRef.current.drownDamageTimer = 0;
+              }
+            }
+          } else {
+            stateRef.current.oxygen = Math.min(20, stateRef.current.oxygen + dt * 12.0);
+            stateRef.current.drownDamageTimer = 0;
+          }
+
+          const isDay = sunY > 0;
+          if (isHeadSubmerged) {
+            const underwaterColor = new THREE.Color("#0284c7");
+            scene.background = underwaterColor;
+            scene.fog.color = underwaterColor;
+            scene.fog.density = 0.045;
+          } else {
+            const skyColor = new THREE.Color(isDay ? "#87CEEB" : "#050b14");
+            scene.background = skyColor;
+            scene.fog.color = skyColor;
+            scene.fog.density = 0.015;
+          }
+          dirLight.position.set(sunX, Math.max(10, sunY), sunZ);
+          dirLight.intensity = isHeadSubmerged ? 0.35 : Math.max(0.1, Math.sin(sunAngle) * 1.2);
+
+          // 3. Dynamic Infinite Chunk Generation around player
+          const currentChunkX = Math.floor(playerPos.x / CHUNK_SIZE_X);
+          const currentChunkZ = Math.floor(playerPos.z / CHUNK_SIZE_Z);
+          for (let dx = -RENDER_DIST; dx <= RENDER_DIST; dx++) {
+            for (let dz = -RENDER_DIST; dz <= RENDER_DIST; dz++) {
+              ensureChunkLoaded(currentChunkX + dx, currentChunkZ + dz);
+            }
+          }
+
+          // 4. Robust 3D AABB Axis-Separated Player Physics & Swimming
+          // Calculate desired horizontal velocity in world space
+          const forward = new THREE.Vector3(0, 0, -1).applyAxisAngle(new THREE.Vector3(0, 1, 0), stateRef.current.yaw);
+          const right = new THREE.Vector3(1, 0, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), stateRef.current.yaw);
+
+          const inputDir = new THREE.Vector3();
+          if (keys.w) inputDir.add(forward);
+          if (keys.s) inputDir.sub(forward);
+          if (keys.d) inputDir.add(right);
+          if (keys.a) inputDir.sub(right);
+
+          if (inputDir.lengthSq() > 0) inputDir.normalize();
+
+          const SPEED = isInWater ? 4.6 : 6.8;
+          playerVel.x = inputDir.x * SPEED;
+          playerVel.z = inputDir.z * SPEED;
+
+          if (isInWater) {
+            // In water: Swimming and buoyancy
+            stateRef.current.isGrounded = false;
+
+            if (keys.space) {
+              // Pressing Space swims upwards!
+              if (playerFeetWater && !playerHeadWater && (keys.w || keys.s || keys.a || keys.d)) {
+                // Near water surface leaping boost out onto shore/bank
+                playerVel.y = Math.max(playerVel.y, 6.2);
+              } else {
+                playerVel.y = 4.4;
+              }
+
+              if (now - stateRef.current.lastSwimSoundTime > 380) {
+                playSoundEffect("swim");
+                stateRef.current.lastSwimSoundTime = now;
+              }
+            } else if (keys.shift) {
+              // Holding Shift dives/sinks downward
+              playerVel.y = -3.8;
+            } else {
+              // Natural water buoyancy & gentle sinking
+              playerVel.y = Math.max(-2.2, playerVel.y - 4.5 * dt);
+              playerVel.y *= 0.93; // Water drag
+            }
+          } else {
+            // On land / in air
+            if (keys.space && stateRef.current.isGrounded) {
+              playerVel.y = 8.2;
+              stateRef.current.isGrounded = false;
+            }
+            playerVel.y -= 22.0 * dt; // Gravity
+          }
+
+          // Player AABB dimensions
+          const pRadius = 0.28;
+          const pHeight = 1.78;
+
+          // --- Step X Axis ---
+          const targetX = playerPos.x + playerVel.x * dt;
+          let collideX = false;
+          const minBlockX = Math.floor(targetX - pRadius);
+          const maxBlockX = Math.floor(targetX + pRadius);
+          const minBlockY = Math.floor(playerPos.y);
+          const maxBlockY = Math.floor(playerPos.y + pHeight);
+          const minBlockZ = Math.floor(playerPos.z - pRadius);
+          const maxBlockZ = Math.floor(playerPos.z + pRadius);
+
+          for (let bx = minBlockX; bx <= maxBlockX; bx++) {
+            for (let by = minBlockY; by <= maxBlockY; by++) {
+              for (let bz = minBlockZ; bz <= maxBlockZ; bz++) {
+                if (isVoxelSolidAt(bx, by, bz)) {
+                  collideX = true;
+                  break;
+                }
+              }
+              if (collideX) break;
+            }
+            if (collideX) break;
+          }
+
+          if (!collideX) {
+            playerPos.x = targetX;
+          } else {
+            playerVel.x = 0;
+          }
+
+          // --- Step Z Axis (Fixes walking backwards through blocks) ---
+          const targetZ = playerPos.z + playerVel.z * dt;
+          let collideZ = false;
+          const currentMinBlockX = Math.floor(playerPos.x - pRadius);
+          const currentMaxBlockX = Math.floor(playerPos.x + pRadius);
+          const minTargetBlockZ = Math.floor(targetZ - pRadius);
+          const maxTargetBlockZ = Math.floor(targetZ + pRadius);
+
+          for (let bx = currentMinBlockX; bx <= currentMaxBlockX; bx++) {
+            for (let by = minBlockY; by <= maxBlockY; by++) {
+              for (let bz = minTargetBlockZ; bz <= maxTargetBlockZ; bz++) {
+                if (isVoxelSolidAt(bx, by, bz)) {
+                  collideZ = true;
+                  break;
+                }
+              }
+              if (collideZ) break;
+            }
+            if (collideZ) break;
+          }
+
+          if (!collideZ) {
+            playerPos.z = targetZ;
+          } else {
+            playerVel.z = 0;
+          }
+
+          // --- Step Y Axis (Gravity & Jumping) ---
+          const targetY = playerPos.y + playerVel.y * dt;
+          let collideY = false;
+          const checkY = playerVel.y <= 0 ? Math.floor(targetY) : Math.floor(targetY + pHeight);
+
+          for (let bx = currentMinBlockX; bx <= currentMaxBlockX; bx++) {
+            for (let bz = minBlockZ; bz <= maxBlockZ; bz++) {
+              if (isVoxelSolidAt(bx, checkY, bz)) {
+                collideY = true;
+                break;
+              }
+            }
+            if (collideY) break;
+          }
+
+          if (collideY) {
+            if (playerVel.y < 0) {
+              // Land on top of block
+              playerPos.y = checkY + 1.0001;
+              playerVel.y = 0;
+              stateRef.current.isGrounded = true;
+            } else if (playerVel.y > 0) {
+              // Bonk head on ceiling
+              playerPos.y = checkY - pHeight - 0.001;
+              playerVel.y = 0;
+            }
+          } else {
+            playerPos.y = targetY;
+            stateRef.current.isGrounded = false;
+          }
+
+          // Safety void recovery
+          if (playerPos.y < -5) {
+            const h = generator.getTerrainHeight(Math.floor(playerPos.x), Math.floor(playerPos.z)).height;
+            playerPos.y = h + 2;
+            playerVel.set(0, 0, 0);
+          }
+
+          camera.position.copy(playerPos).add(new THREE.Vector3(0, 1.6, 0));
+
+          // 5. Mob AI & Safe Combat Handling
+          for (const mob of mobs) {
+            mob.walkTimer += dt;
+            if (mob.hitTimer > 0) mob.hitTimer -= dt;
+
+            if (mob.isHostile) {
+              const distToPlayer = mob.position.distanceTo(playerPos);
+              if (distToPlayer < 18) {
+                const dir = playerPos.clone().sub(mob.position).setY(0).normalize();
+                mob.targetDirection.copy(dir);
+                mob.rotationY = Math.atan2(dir.x, dir.z);
+
+                if (distToPlayer < 1.4 && mob.attackCooldown <= 0) {
+                  props.onPlayerHurt?.(3);
+                  mob.attackCooldown = 1.2;
+                }
+              }
+            } else if (mob.walkTimer > 3) {
+              mob.rotationY = Math.random() * Math.PI * 2;
+              mob.targetDirection.set(Math.sin(mob.rotationY), 0, Math.cos(mob.rotationY)).normalize();
+              mob.walkTimer = 0;
+            }
+
+            if (mob.attackCooldown > 0) mob.attackCooldown -= dt;
+
+            // Apply mob movement & terrain following
+            mob.position.addScaledVector(mob.targetDirection, (mob.isHostile ? 2.5 : 1.2) * dt);
+            const { height: groundH } = generator.getTerrainHeight(Math.floor(mob.position.x), Math.floor(mob.position.z));
+            mob.position.y = groundH + 0.1;
+            mob.group.rotation.y = mob.rotationY;
+
+            // Leg swing animation
+            const swing = Math.sin(now * 0.008) * 0.4;
+            if (mob.leftLegFront) mob.leftLegFront.rotation.x = swing;
+            if (mob.rightLegFront) mob.rightLegFront.rotation.x = -swing;
+          }
+
+          // 6. World Item Drops (Bobbing & Magnetic Pickup)
+          for (const drop of itemDrops) {
+            drop.mesh.rotation.y += dt * 2;
+            const dist = drop.position.distanceTo(playerPos);
+            if (dist < 2.0 && now - drop.spawnTime > 400) {
+              playSoundEffect("pickup");
+              scene.remove(drop.mesh);
+              drop.toRemove = true;
+
+              props.setHotbar((prev) => {
+                const next = [...prev];
+                const existing = next.find((s) => s.itemId === drop.itemId && s.count < (ITEM_REGISTRY[drop.itemId]?.maxStack || 64));
+                if (existing) {
+                  existing.count += drop.count;
+                } else {
+                  const emptyIdx = next.findIndex((s) => !s.itemId || s.count === 0);
+                  if (emptyIdx !== -1) next[emptyIdx] = { itemId: drop.itemId, count: drop.count };
+                }
+                return next;
+              });
+            }
+          }
+          stateRef.current.itemDrops = itemDrops.filter((d) => !d.toRemove);
+
+          // 7. Throttled UI Updates
+          frameCount++;
+          if (frameCount >= 10) {
+            const rad = stateRef.current.yaw;
+            let dirStr = "South";
+            const deg = ((rad * 180 / Math.PI) % 360 + 360) % 360;
+            if (deg >= 315 || deg < 45) dirStr = "North";
+            else if (deg >= 45 && deg < 135) dirStr = "West";
+            else if (deg >= 135 && deg < 225) dirStr = "South";
+            else dirStr = "East";
+
+            const currentBiome = generator.getBiomeAt(Math.floor(playerPos.x), Math.floor(playerPos.z)).name;
+            props.onPositionUpdate(playerPos.clone(), dirStr, currentBiome);
+            props.onOxygenUpdate?.(stateRef.current.oxygen, isHeadSubmerged);
+
+            const hours = Math.floor(t * 24);
+            const mins = Math.floor((t * 24 - hours) * 60);
+            const hour12 = ((hours + 11) % 12) + 1;
+            const ampm = hours >= 12 ? "PM" : "AM";
+            const fmt = `${hour12}:${mins.toString().padStart(2, "0")} ${ampm}`;
+            const phase = hours >= 6 && hours < 18 ? "Day" : (hours >= 18 && hours < 21 ? "Sunset" : "Night");
+            props.onTimeUpdate(phase, fmt);
+
+            frameCount = 0;
+          }
+
+          renderer.render(scene, camera);
+        };
+
+        animId = requestAnimationFrame(loop);
+
+        return () => {
+          cancelAnimationFrame(animId);
+          document.removeEventListener("mousemove", handleMouseMove);
+          document.removeEventListener("mousedown", handleMouseDown);
+          window.removeEventListener("keydown", handleKeyDown);
+          window.removeEventListener("keyup", handleKeyUp);
+          document.removeEventListener("pointerlockchange", handleLockChange);
+          window.removeEventListener("resize", handleResize);
+          renderer.dispose();
+        };
+      }, []);
+
+      return <canvas id="game-canvas" ref={canvasRef} className="w-full h-full block cursor-crosshair" />;
+    });
+
+    // ==========================================
+    // 8. HUD & USER INTERFACE COMPONENTS
+    // ==========================================
+    function HUD({
+      isLocked,
+      position,
+      facing,
+      biomeName,
+      worldSeed,
+      activeSlotIndex,
+      onActiveSlotIndexChange,
+      hotbar,
+      timePhase,
+      timeFormatted,
+      onCycleTime,
+      onGenerateNewWorld,
+      health,
+      hunger,
+      oxygen = 20,
+      isUnderwater = false,
+      mobsKilled,
+      isHurtFlash,
+      isDead,
+      onRespawn,
+      onEatFood,
+    }) {
+      const activeSlot = hotbar[activeSlotIndex];
+      const activeItem = activeSlot?.itemId ? ITEM_REGISTRY[activeSlot.itemId] : null;
+
+      return (
+        <div className="absolute inset-0 pointer-events-none flex flex-col justify-between p-5 text-slate-100 font-sans">
+          {/* Hurt flash */}
+          {isHurtFlash && <div className="fixed inset-0 bg-rose-600/30 border-8 border-rose-600/60 pointer-events-none z-40 animate-pulse" />}
+
+          {/* Underwater blue tint overlay */}
+          {isUnderwater && <div className="fixed inset-0 bg-sky-600/15 pointer-events-none z-30 mix-blend-color-dodge" />}
+
+          {/* Death screen */}
+          {isDead && (
+            <div className="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 flex flex-col items-center justify-center p-6 text-center pointer-events-auto">
+              <div className="max-w-md w-full bg-slate-900 border border-rose-900/50 rounded-2xl p-8 shadow-2xl flex flex-col items-center gap-4">
+                <span className="text-5xl mb-1">☠️</span>
+                <h1 className="text-4xl font-black text-rose-500 uppercase tracking-wider">You Died!</h1>
+                <p className="text-slate-400 text-sm font-mono">You fell in combat during your survival adventure.</p>
+                <div className="w-full bg-slate-950/60 border border-slate-800 rounded-xl p-3 text-center my-2">
+                  <span className="text-xs text-slate-500 font-mono block">MOBS DEFEATED</span>
+                  <span className="text-2xl font-black text-emerald-400 font-mono">{mobsKilled}</span>
+                </div>
+                <button
+                  onClick={onRespawn}
+                  className="w-full py-3.5 px-6 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-mono font-bold text-sm uppercase shadow-lg transition-all cursor-pointer"
+                >
+                  Respawn
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Top Bar: Coordinates & Time */}
+          <div className="flex justify-between items-start w-full">
+            <div className="backdrop-blur-md bg-slate-900/80 border border-slate-700/60 rounded-xl p-3 flex flex-col gap-1 shadow-xl pointer-events-auto text-xs font-mono">
+              <div className="text-slate-400 font-bold border-b border-slate-700/50 pb-1 flex items-center justify-between gap-2">
+                <span>🧭 Coordinates</span>
+                <button
+                  onClick={() => onGenerateNewWorld()}
+                  title="Generate a brand new random procedural world"
+                  className="px-2 py-0.5 bg-emerald-700/70 hover:bg-emerald-600 rounded text-[10px] text-white font-bold transition-all cursor-pointer"
+                >
+                  🎲 New World
+                </button>
+              </div>
+              <div className="flex gap-3 text-emerald-300 font-bold">
+                <span>X: {position.x.toFixed(1)}</span>
+                <span>Y: {position.y.toFixed(1)}</span>
+                <span>Z: {position.z.toFixed(1)}</span>
+              </div>
+              <div className="flex justify-between border-t border-slate-700/30 pt-1 text-slate-300">
+                <span className="text-slate-500">Facing:</span>
+                <span className="text-amber-400 font-bold">{facing}</span>
+              </div>
+              <div className="flex justify-between border-t border-slate-700/30 pt-1 text-slate-300">
+                <span className="text-slate-500">Biome:</span>
+                <span className="text-emerald-400 font-bold">🏞️ {biomeName}</span>
+              </div>
+              <div className="flex justify-between border-t border-slate-700/30 pt-1 text-slate-300">
+                <span className="text-slate-500">World Seed:</span>
+                <span className="text-sky-400 font-bold font-mono">#{worldSeed}</span>
+              </div>
+              <div className="flex justify-between border-t border-slate-700/30 pt-1 text-slate-300">
+                <span className="text-slate-500">Mobs Defeated:</span>
+                <span className="text-emerald-400 font-bold">⚔️ {mobsKilled}</span>
+              </div>
+            </div>
+
+            {/* Time of Day Widget */}
+            <div
+              onClick={onCycleTime}
+              title="Click or press [T] to cycle time"
+              className="backdrop-blur-md bg-slate-900/80 border border-slate-700/60 hover:border-amber-500/50 rounded-xl p-3 flex items-center gap-3 shadow-xl pointer-events-auto cursor-pointer transition-all hover:scale-105 select-none"
+            >
+              <span className="text-2xl">{timePhase === "Night" ? "🌙" : timePhase === "Sunset" ? "🌅" : "☀️"}</span>
+              <div className="flex flex-col">
+                <span className="font-mono text-sm font-black text-amber-300">{timeFormatted}</span>
+                <span className="font-mono text-[10px] text-slate-400 uppercase">{timePhase} • [T]</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Crosshair */}
+          {isLocked && (
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div className="relative w-6 h-6 flex items-center justify-center">
+                <div className="absolute w-5 h-[2px] bg-white opacity-80 rounded-full mix-blend-difference" />
+                <div className="absolute h-5 w-[2px] bg-white opacity-80 rounded-full mix-blend-difference" />
+                <div className="w-[4px] h-[4px] bg-white rounded-full mix-blend-difference" />
+              </div>
+            </div>
+          )}
+
+          {/* Bottom Bar: Health, Hunger, Hotbar & Controls */}
+          <div className="w-full flex justify-between items-end gap-6 pointer-events-none">
+            <div className="w-[200px]" />
+
+            {/* Hotbar & Survival Bars */}
+            <div className="flex flex-col items-center gap-1.5 pointer-events-auto">
+              {/* Oxygen Air Bubbles */}
+              {(oxygen < 20 || isUnderwater) && (
+                <div className="flex justify-end items-center gap-0.5 w-full pr-1 select-none">
+                  {Array.from({ length: 10 }).map((_, i) => (
+                    <span key={i} className="text-xs transition-all drop-shadow">
+                      {oxygen >= (i + 1) * 2 ? "🫧" : "▫️"}
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              <div className="flex justify-between items-center w-full px-2 gap-8 text-sm select-none">
+                {/* Health Hearts */}
+                <div className="flex items-center gap-0.5">
+                  {Array.from({ length: 10 }).map((_, i) => (
+                    <span key={i} className="text-xs">
+                      {health >= (i + 1) * 2 ? "❤️" : health >= (i + 1) * 2 - 1 ? "💔" : "🖤"}
+                    </span>
+                  ))}
+                </div>
+                {/* Hunger Drumsticks */}
+                <div className="flex items-center gap-0.5 cursor-pointer" onClick={onEatFood}>
+                  {Array.from({ length: 10 }).map((_, i) => (
+                    <span key={i} className="text-xs">
+                      {hunger >= (i + 1) * 2 ? "🥩" : hunger >= (i + 1) * 2 - 1 ? "🍖" : "🦴"}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              {/* Active Item Title */}
+              <div className="bg-slate-950/85 border border-slate-800 rounded-full px-3 py-0.5 shadow-md">
+                <span className="text-xs font-bold font-mono text-slate-200">
+                  {activeItem ? activeItem.name : "Empty Hand"}
+                </span>
+              </div>
+
+              {/* Hotbar Slots */}
+              <div className="flex items-center gap-1.5 bg-slate-900/80 border border-slate-800 rounded-2xl p-2 shadow-2xl backdrop-blur-md">
+                {hotbar.map((slot, idx) => {
+                  const item = slot.itemId ? ITEM_REGISTRY[slot.itemId] : null;
+                  const isSel = idx === activeSlotIndex;
+                  return (
+                    <button
+                      key={idx}
+                      onClick={() => onActiveSlotIndexChange(idx)}
+                      className={`relative w-12 h-12 rounded-xl flex items-center justify-center transition-all cursor-pointer ${
+                        isSel ? "bg-slate-800 border-2 border-emerald-400 scale-110 shadow-lg -translate-y-1" : "bg-slate-950/50 border border-slate-800 hover:bg-slate-800/40"
+                      }`}
+                    >
+                      {item ? (
+                        <div className="relative flex items-center justify-center w-full h-full">
+                          <span className="text-xl">{item.emoji}</span>
+                          {slot.count > 1 && (
+                            <span className="absolute bottom-0.5 right-1 text-[9px] font-mono font-bold bg-slate-950 px-1 rounded text-white border border-slate-700">
+                              {slot.count}
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="w-6 h-6 border border-dashed border-slate-800 rounded-md" />
+                      )}
+                      <span className="absolute top-0.5 left-1 font-mono text-[8px] font-bold text-slate-500">{idx + 1}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Controls Guide Card */}
+            <div className="pointer-events-auto backdrop-blur-md bg-slate-900/70 border border-slate-800/80 rounded-xl p-3 w-[210px] flex flex-col gap-1 text-[11px] font-mono shadow-lg">
+              <span className="text-slate-400 font-bold pb-1 border-b border-slate-800">🕹️ Controls</span>
+              <div className="flex justify-between"><span>WASD</span><span className="text-slate-400">Move / Swim</span></div>
+              <div className="flex justify-between"><span>SPACE</span><span className="text-sky-300">Jump / Swim Up</span></div>
+              <div className="flex justify-between"><span>SHIFT</span><span className="text-slate-400">Sink / Dive</span></div>
+              <div className="flex justify-between"><span>L-CLICK</span><span className="text-emerald-400">Break/Attack</span></div>
+              <div className="flex justify-between"><span>R-CLICK</span><span className="text-sky-400">Place/Use</span></div>
+              <div className="flex justify-between"><span>E</span><span className="text-amber-400">Inventory</span></div>
+              <div className="flex justify-between"><span>1-9</span><span className="text-slate-400">Hotbar</span></div>
+              <div className="flex justify-between"><span>R</span><span className="text-rose-400">Unstuck</span></div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ==========================================
+    // 9. START / PAUSE MODAL
+    // ==========================================
+    function StartModal({ seed, onPlay, onGenerateNewWorld }) {
+      const [customSeed, setCustomSeed] = useState(seed);
+
+      const presets = [
+        { label: "🌲 Forest Hills", seed: "28471923" },
+        { label: "🏔️ Mountain Crags", seed: "84910245" },
+        { label: "🏜️ Desert Dunes", seed: "55219482" },
+        { label: "❄️ Snowy Taiga", seed: "19472648" },
+      ];
+
+      const handleRandomize = () => {
+        const rand = String(Math.floor(100000000 + Math.random() * 900000000));
+        setCustomSeed(rand);
+      };
+
+      const handleStart = () => {
+        if (customSeed !== seed) {
+          onGenerateNewWorld(customSeed);
+        } else {
+          onPlay();
+        }
+      };
+
+      return (
+        <div className="absolute inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
+          <div className="max-w-md w-full bg-slate-900 border border-slate-800 rounded-2xl p-6 flex flex-col items-center text-center shadow-2xl relative">
+            <div className="absolute top-0 left-0 right-0 h-1.5 bg-emerald-500 rounded-t-2xl" />
+            <h1 className="text-3xl font-black text-slate-100 uppercase tracking-tight mt-2">Minecraft Clone</h1>
+            <p className="text-emerald-400 font-mono text-xs uppercase tracking-widest mt-1 font-bold">Infinite Procedural World</p>
+            <p className="text-slate-400 text-sm mt-2 leading-relaxed">
+              Explore dynamic multi-octave biomes, mine ores, craft tools, dive deep in oceans, and build anything!
+            </p>
+
+            {/* World Generation & Seed Box */}
+            <div className="w-full mt-4 p-3 bg-slate-950/70 border border-slate-800 rounded-xl text-left flex flex-col gap-2">
+              <div className="flex justify-between items-center">
+                <span className="text-xs font-mono font-bold text-slate-400">WORLD SEED</span>
+                <button
+                  type="button"
+                  onClick={handleRandomize}
+                  className="text-xs font-mono text-emerald-400 hover:text-emerald-300 font-bold flex items-center gap-1 cursor-pointer"
+                >
+                  🎲 Randomize
+                </button>
+              </div>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={customSeed}
+                  onChange={(e) => setCustomSeed(e.target.value)}
+                  placeholder="Enter custom seed or text..."
+                  className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs font-mono text-emerald-300 focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+
+              {/* Seed Presets */}
+              <div className="flex flex-wrap gap-1.5 mt-1">
+                {presets.map((p) => (
+                  <button
+                    key={p.seed}
+                    type="button"
+                    onClick={() => setCustomSeed(p.seed)}
+                    className={`text-[10px] font-mono px-2 py-1 rounded-md border transition-all cursor-pointer ${
+                      customSeed === p.seed
+                        ? "bg-emerald-600/30 border-emerald-500 text-emerald-300 font-bold"
+                        : "bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700"
+                    }`}
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <button
+              onClick={handleStart}
+              className="w-full mt-5 py-3.5 px-6 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-base rounded-xl flex items-center justify-center gap-2 shadow-lg transition-all cursor-pointer active:scale-95"
+            >
+              ▶ Enter World & Play
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    // ==========================================
+    // 10. INVENTORY & CRAFTING MODAL
+    // ==========================================
+    function InventoryModal({ isOpen, onClose, inventory, hotbar, onInventoryChange, onHotbarChange, isCraftingTableOpen, onDropItem }) {
+      const [cursorItem, setCursorItem] = useState(null);
+      const [is3x3, setIs3x3] = useState(isCraftingTableOpen);
+      const [craftGrid, setCraftGrid] = useState(() => Array.from({ length: 9 }, () => ({ itemId: "", count: 0 })));
+
+      const activeGrid = is3x3 ? craftGrid : craftGrid.slice(0, 4);
+      const craftResult = checkCraftingRecipe(activeGrid.map((s) => s.itemId));
+      const craftDef = craftResult ? ITEM_REGISTRY[craftResult.itemId] : null;
+
+      const handleSlotClick = (type, index, isRightClick) => {
+        const list = type === "inventory" ? [...inventory] : [...hotbar];
+        const updateList = type === "inventory" ? onInventoryChange : onHotbarChange;
+        const cur = list[index];
+
+        if (!cursorItem || !cursorItem.itemId) {
+          if (!cur.itemId) return;
+          if (isRightClick && cur.count > 1) {
+            const take = Math.ceil(cur.count / 2);
+            setCursorItem({ ...cur, count: take });
+            list[index] = { ...cur, count: cur.count - take };
+          } else {
+            setCursorItem({ ...cur });
+            list[index] = { itemId: "", count: 0 };
+          }
+          updateList(list);
+        } else {
+          if (!cur.itemId) {
+            if (isRightClick) {
+              list[index] = { ...cursorItem, count: 1 };
+              if (cursorItem.count > 1) setCursorItem({ ...cursorItem, count: cursorItem.count - 1 });
+              else setCursorItem(null);
+            } else {
+              list[index] = { ...cursorItem };
+              setCursorItem(null);
+            }
+            updateList(list);
+          } else if (cur.itemId === cursorItem.itemId) {
+            const max = ITEM_REGISTRY[cur.itemId]?.maxStack || 64;
+            if (isRightClick && cur.count < max) {
+              list[index].count++;
+              if (cursorItem.count > 1) setCursorItem({ ...cursorItem, count: cursorItem.count - 1 });
+              else setCursorItem(null);
+              updateList(list);
+            } else {
+              const transfer = Math.min(max - cur.count, cursorItem.count);
+              list[index].count += transfer;
+              if (cursorItem.count > transfer) setCursorItem({ ...cursorItem, count: cursorItem.count - transfer });
+              else setCursorItem(null);
+              updateList(list);
+            }
+          } else if (!isRightClick) {
+            const temp = { ...cur };
+            list[index] = { ...cursorItem };
+            setCursorItem(temp);
+            updateList(list);
+          }
+        }
+      };
+
+      const handleCraftResult = () => {
+        if (!craftResult || !craftDef) return;
+        setCursorItem({ itemId: craftResult.itemId, count: (cursorItem?.count || 0) + craftResult.count });
+        setCraftGrid((prev) =>
+          prev.map((slot, idx) => {
+            const max = is3x3 ? 9 : 4;
+            if (idx >= max || !slot.itemId) return slot;
+            return slot.count > 1 ? { ...slot, count: slot.count - 1 } : { itemId: "", count: 0 };
+          })
+        );
+      };
+
+      return (
+        <div className="absolute inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md pointer-events-auto">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-lg p-6 shadow-2xl flex flex-col gap-4 text-slate-100 font-sans">
+            <div className="flex justify-between items-center pb-2 border-b border-slate-800">
+              <h2 className="text-lg font-bold">{is3x3 ? "🪵🧱 Crafting Table (3x3)" : "🎒 Inventory & 2x2 Crafting"}</h2>
+              <button onClick={onClose} className="p-1 px-2.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white cursor-pointer font-bold">✕</button>
+            </div>
+
+            {/* Crafting Grid */}
+            <div className="bg-slate-950/60 border border-slate-800 rounded-xl p-3 flex items-center justify-between">
+              <div className="flex flex-col gap-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] uppercase font-bold text-slate-400 font-mono">{is3x3 ? "3x3 Grid" : "2x2 Grid"}</span>
+                  <button onClick={() => setIs3x3(!is3x3)} className="text-[9px] bg-slate-800 border border-slate-700 px-2 py-0.5 rounded text-emerald-300">
+                    Switch to {is3x3 ? "2x2" : "3x3"}
+                  </button>
+                </div>
+                <div className={`grid gap-1.5 ${is3x3 ? "grid-cols-3" : "grid-cols-2"}`}>
+                  {(is3x3 ? [0,1,2,3,4,5,6,7,8] : [0,1,2,3]).map((idx) => {
+                    const slot = craftGrid[idx];
+                    const item = slot.itemId ? ITEM_REGISTRY[slot.itemId] : null;
+                    return (
+                      <div
+                        key={idx}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          const grid = [...craftGrid];
+                          if (!cursorItem || !cursorItem.itemId) {
+                            if (slot.itemId) { setCursorItem({ ...slot }); grid[idx] = { itemId: "", count: 0 }; setCraftGrid(grid); }
+                          } else {
+                            grid[idx] = { ...cursorItem, count: 1 };
+                            if (cursorItem.count > 1) setCursorItem({ ...cursorItem, count: cursorItem.count - 1 });
+                            else setCursorItem(null);
+                            setCraftGrid(grid);
+                          }
+                        }}
+                        className="w-10 h-10 rounded-lg bg-slate-900 border border-slate-800 hover:border-slate-600 flex items-center justify-center cursor-pointer relative"
+                      >
+                        {item && <span className="text-lg">{item.emoji}</span>}
+                        {slot.count > 1 && <span className="absolute bottom-0.5 right-0.5 text-[8px] bg-slate-950 px-1 rounded text-emerald-400 font-mono">{slot.count}</span>}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Crafting Result */}
+              <div className="flex flex-col items-center gap-1">
+                <span className="text-[10px] font-mono text-emerald-400 font-bold uppercase">Result</span>
+                <div
+                  onClick={handleCraftResult}
+                  className={`w-14 h-14 rounded-xl border flex items-center justify-center cursor-pointer transition-all ${
+                    craftDef ? "bg-emerald-950/40 border-emerald-500/50 shadow-lg scale-105" : "bg-slate-950/40 border-slate-800 opacity-40 cursor-not-allowed"
+                  }`}
+                >
+                  {craftDef && <span className="text-2xl">{craftDef.emoji}</span>}
+                </div>
+              </div>
+            </div>
+
+            {/* Main Inventory */}
+            <div>
+              <span className="text-[10px] font-mono uppercase text-slate-400 font-bold">Main Inventory</span>
+              <div className="grid grid-cols-9 gap-1.5 p-2 bg-slate-950/40 border border-slate-800 rounded-xl mt-1">
+                {inventory.map((slot, i) => {
+                  const item = slot.itemId ? ITEM_REGISTRY[slot.itemId] : null;
+                  return (
+                    <div
+                      key={i}
+                      onClick={(e) => handleSlotClick("inventory", i, e.button === 2)}
+                      onContextMenu={(e) => { e.preventDefault(); handleSlotClick("inventory", i, true); }}
+                      className="w-10 h-10 rounded-lg bg-slate-950 border border-slate-800 hover:border-slate-600 flex items-center justify-center cursor-pointer relative"
+                    >
+                      {item && <span className="text-lg">{item.emoji}</span>}
+                      {slot.count > 1 && <span className="absolute bottom-0.5 right-0.5 text-[8px] bg-slate-900 px-1 rounded text-emerald-400 font-mono">{slot.count}</span>}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Hotbar */}
+            <div>
+              <span className="text-[10px] font-mono uppercase text-slate-400 font-bold">Quick Hotbar</span>
+              <div className="grid grid-cols-9 gap-1.5 p-2 bg-slate-950/60 border border-emerald-500/20 rounded-xl mt-1">
+                {hotbar.map((slot, i) => {
+                  const item = slot.itemId ? ITEM_REGISTRY[slot.itemId] : null;
+                  return (
+                    <div
+                      key={i}
+                      onClick={(e) => handleSlotClick("hotbar", i, e.button === 2)}
+                      onContextMenu={(e) => { e.preventDefault(); handleSlotClick("hotbar", i, true); }}
+                      className="w-10 h-10 rounded-lg bg-slate-950 border border-slate-800 hover:border-slate-600 flex items-center justify-center cursor-pointer relative"
+                    >
+                      {item && <span className="text-lg">{item.emoji}</span>}
+                      {slot.count > 1 && <span className="absolute bottom-0.5 right-0.5 text-[8px] bg-slate-900 px-1 rounded text-emerald-400 font-mono">{slot.count}</span>}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // Render React App
+    const root = ReactDOM.createRoot(document.getElementById("root"));
+    root.render(<MinecraftApp />);
+  </script>
+</body>
+</html>
