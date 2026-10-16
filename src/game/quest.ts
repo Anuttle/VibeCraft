@@ -1,4 +1,5 @@
 import { Band, Line } from "../i18n/types";
+import { StationId, WorldSetup } from "./world";
 
 /** Something the game world reports that objectives can react to. */
 export type GameEvent =
@@ -7,7 +8,9 @@ export type GameEvent =
   | { type: "collected"; itemId: string; count: number }
   | { type: "placed"; blockItemId: string }
   | { type: "inventory_opened" }
-  | { type: "crafted"; itemId: string; count: number };
+  | { type: "crafted"; itemId: string; count: number }
+  | { type: "talked"; npcId: string }
+  | { type: "station_done"; station: StationId };
 
 export type Objective =
   | { type: "walk"; distance: number }
@@ -15,7 +18,9 @@ export type Objective =
   | { type: "collect"; itemId: string; count: number }
   | { type: "place"; count: number }
   | { type: "open_inventory" }
-  | { type: "craft"; itemId: string; count: number };
+  | { type: "craft"; itemId: string; count: number }
+  | { type: "talk"; npcId: string }
+  | { type: "station"; station: StationId };
 
 export interface ObjectiveText {
   /** What to do. May use {n} for the target amount. */
@@ -44,6 +49,7 @@ export interface Step {
 
 export interface Chapter {
   id: string;
+  world?: WorldSetup;
   steps: Step[];
 }
 
@@ -76,6 +82,8 @@ export function objectiveTarget(o: Objective): number {
     case "place":
       return o.count;
     case "open_inventory":
+    case "talk":
+    case "station":
       return 1;
   }
 }
@@ -88,6 +96,8 @@ function eventProgress(o: Objective, e: GameEvent): number {
   if (o.type === "place" && e.type === "placed") return 1;
   if (o.type === "open_inventory" && e.type === "inventory_opened") return 1;
   if (o.type === "craft" && e.type === "crafted" && e.itemId === o.itemId) return e.count;
+  if (o.type === "talk" && e.type === "talked" && e.npcId === o.npcId) return 1;
+  if (o.type === "station" && e.type === "station_done" && e.station === o.station) return 1;
   return 0;
 }
 

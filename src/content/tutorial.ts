@@ -16,6 +16,7 @@ const NOT_K2 = ["3-5", "6-8", "9-12"] as const;
 
 export const TUTORIAL: Chapter = {
   id: "tutorial",
+  world: { spawnTrees: true },
   steps: [
     {
       id: "welcome",

@@ -221,6 +221,32 @@ This means audio works from day one through the fallback, and quality improves a
 | Touch controls: joystick, drag to look, buttons | `components/TouchControls.tsx`, `game/input.ts` |
 | Tutorial chapter, playable in every band × tier × language | `content/tutorial.ts` |
 
+### Phase 2: Vertical slice (done)
+
+| Area | Where |
+|---|---|
+| Data-driven crafting recipes | `utils/items.ts` (`RECIPES`) |
+| Workshop blocks and stations (type case, press); structure blocks can't be broken | `types.ts`, `utils/items.ts` |
+| Per-chapter world setup: flattened site, built structure, props, characters, spawn point | `game/world.ts`, `GameCanvas.tsx` |
+| Characters (Johannes Gutenberg) with name tags, who turn to face the player | `utils/props.ts` |
+| Proximity "use" prompt (tap, or F on desktop) for stations and characters | `components/InteractPrompt.tsx` |
+| **Chapter 4: The Press**, in every band × tier × language | `content/press.ts` |
+| Typesetting minigame (mirrored sorts, upper/lower case, justification, proofreading) | `components/minigames/Typesetting.tsx`, `game/typesetting.ts` |
+| Printing minigame (inking, damp paper, pulling the bar, sheet quality, quotas) | `components/minigames/PressGame.tsx` |
+
+#### Chapter 4 by grade band
+
+| Band | Typesetting | Printing |
+|---|---|---|
+| K–2 | One capitalized word, big sorts, hints after 1 miss | 1 sheet; no way to fail |
+| 3–5 | Two lowercase words with b/d/p/q look-alikes, a space, proofreading | 2 good sheets; wide target zones |
+| 6–8 | Two lines, separate upper and lower cases, justified to width, proofreading | 3 good sheets; narrower zones |
+| 9–12 | Three lines, shuffled cases, justification with spaces spread evenly, proofreading | 4 good sheets; tight zones and a timer |
+
+Gutenberg's dialogue is written for teaching and is not quoted from him. The historical notes for reviewers are at the top of `content/press.ts`.
+
+Automated browser checks can teleport the player with `?debug=1` (this exposes `window.__ppTeleport`).
+
 ### Device support
 
 - **Touch mode** is used on any touch-capable device (iPad, touchscreen Chromebooks). Keyboard movement still works, so an iPad with a keyboard case gets both.

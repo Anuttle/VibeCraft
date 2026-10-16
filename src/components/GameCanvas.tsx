@@ -1,12 +1,14 @@
 import React, { useEffect, useRef } from "react";
 import * as THREE from "three";
-import { BlockType, InventorySlot } from "../types";
-import { TerrainGenerator, CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z } from "../utils/terrain";
+import { BlockType, InventorySlot, STATION_BLOCKS } from "../types";
+import { TerrainGenerator, CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z, SEA_LEVEL } from "../utils/terrain";
 import { buildChunkGeometry } from "../utils/meshing";
 import { ITEM_REGISTRY, BLOCK_DROP_TABLE } from "../utils/items";
 import { MobEntity, MobType, createPigMesh, playSoundEffect } from "../utils/mobs";
 import { InputMode, gameActions, resetTouchInput, touchInput } from "../game/input";
 import { GameEvent } from "../game/quest";
+import { Interactable, WorldSetup } from "../game/world";
+import { HumanoidMesh, createDecor, createHumanoidMesh, createNameTag } from "../utils/props";
 
 interface GameCanvasProps {
   onLockChange: (isLocked: boolean) => void;
@@ -25,7 +27,15 @@ interface GameCanvasProps {
   onGameEvent: (event: GameEvent) => void;
   spawnDropExternalRef: React.MutableRefObject<((itemId: string, count: number) => void) | null>;
   onOpenCraftingTable?: () => void;
+  /** Chapter-specific scenery; read once when the world is created. */
+  world: WorldSetup;
+  /** Called when the player comes within reach of a station or character, or leaves it. */
+  onFocusChange: (target: Interactable | null) => void;
+  /** Skip simulation and rendering while a full-screen activity covers the world. */
+  suspended?: boolean;
 }
+
+const INTERACT_RANGE = 2.6;
 
 // Fixed late-morning light. Night made reading and navigation harder for young
 // players; chapters can set their own time of day later.
@@ -53,7 +63,15 @@ export default function GameCanvas({
   onGameEvent,
   spawnDropExternalRef,
   onOpenCraftingTable,
+  world,
+  onFocusChange,
+  suspended = false,
 }: GameCanvasProps) {
+  const suspendedRef = useRef(suspended);
+  useEffect(() => { suspendedRef.current = suspended; }, [suspended]);
+  const worldRef = useRef(world);
+  const onFocusChangeRef = useRef(onFocusChange);
+  useEffect(() => { onFocusChangeRef.current = onFocusChange; }, [onFocusChange]);
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -279,28 +297,92 @@ export default function GameCanvas({
       }
     }
 
-    const spawnChunk = loadedChunks.get("0,0");
-    if (spawnChunk) {
+    const spawnChunk = loadedChunks.get("0,0")!;
+    const setLocal = (x: number, y: number, z: number, block: BlockType) => {
+      if (x < 0 || x >= CHUNK_SIZE_X || z < 0 || z >= CHUNK_SIZE_Z || y < 0 || y >= CHUNK_SIZE_Y) return;
+      spawnChunk[x + z * CHUNK_SIZE_X + y * CHUNK_SIZE_X * CHUNK_SIZE_Z] = block;
+    };
+    const getLocal = (x: number, y: number, z: number) => spawnChunk[x + z * CHUNK_SIZE_X + y * CHUNK_SIZE_X * CHUNK_SIZE_Z];
+    const groundTop = (x: number, z: number) => {
+      for (let y = CHUNK_SIZE_Y - 1; y >= 0; y--) if (getLocal(x, y, z) !== BlockType.AIR) return y;
+      return 0;
+    };
+
+    const setup = worldRef.current;
+    if (setup.spawnTrees) {
       for (const [tx, tz] of SPAWN_TREES) {
         const { height } = generator.getTerrainHeight(tx, tz);
         generator.generateOakTree(spawnChunk, tx, height, tz);
       }
     }
 
-    let spawnY = 24;
-    if (spawnChunk) {
-      for (let y = CHUNK_SIZE_Y - 1; y >= 0; y--) {
-        const idx = 8 + 8 * CHUNK_SIZE_X + y * CHUNK_SIZE_X * CHUNK_SIZE_Z;
-        if (spawnChunk[idx] !== BlockType.AIR) {
-          spawnY = y + 1;
-          break;
+    // Chapter structure: flatten its area to one floor height, then build it.
+    const interactables: Interactable[] = [];
+    let floorY = 0;
+    if (setup.structure) {
+      const { area } = setup.structure;
+      const cx = Math.floor((area.x0 + area.x1) / 2);
+      const cz = Math.floor((area.z0 + area.z1) / 2);
+      floorY = Math.min(CHUNK_SIZE_Y - 12, Math.max(generator.getTerrainHeight(cx, cz).height, SEA_LEVEL + 1));
+      for (let x = area.x0; x <= area.x1; x++) {
+        for (let z = area.z0; z <= area.z1; z++) {
+          for (let y = 1; y < CHUNK_SIZE_Y; y++) {
+            const current = getLocal(x, y, z);
+            if (y < floorY - 3) continue;
+            if (y < floorY) {
+              if (current === BlockType.AIR || current === BlockType.WATER || current === BlockType.WOOD || current === BlockType.LEAVES) {
+                setLocal(x, y, z, BlockType.DIRT);
+              }
+            } else if (y === floorY) {
+              setLocal(x, y, z, BlockType.GRASS);
+            } else {
+              setLocal(x, y, z, BlockType.AIR);
+            }
+          }
         }
       }
+      setup.structure.build(setLocal, floorY);
+
+      for (const d of setup.structure.decor ?? []) {
+        const prop = createDecor(d.kind);
+        prop.position.set(d.x + 0.5, floorY + d.dy, d.z + 0.5);
+        scene.add(prop);
+      }
+      for (const st of setup.structure.stations) {
+        interactables.push({
+          id: st.id,
+          kind: "station",
+          station: st.station,
+          label: st.label,
+          x: st.x + 0.5,
+          y: floorY + st.dy + 0.5,
+          z: st.z + 0.5,
+        });
+      }
     }
-    playerPosition.current.set(8.5, spawnY + PLAYER_HEIGHT, 8.5);
+
+    // Characters
+    const npcs: Array<{ id: string; mesh: HumanoidMesh; x: number; z: number; tag: THREE.Sprite }> = [];
+    for (const def of setup.npcs ?? []) {
+      const mesh = createHumanoidMesh(def.look);
+      const baseY = groundTop(def.x, def.z) + 1;
+      mesh.group.position.set(def.x + 0.5, baseY, def.z + 0.5);
+      const tag = createNameTag(def.name.en);
+      tag.position.set(def.x + 0.5, baseY + 2.45, def.z + 0.5);
+      scene.add(mesh.group);
+      scene.add(tag);
+      npcs.push({ id: def.id, mesh, x: def.x + 0.5, z: def.z + 0.5, tag });
+      interactables.push({ id: def.id, kind: "npc", label: def.name, x: def.x + 0.5, y: baseY + 1, z: def.z + 0.5 });
+    }
+
+    // Spawn point and initial facing
+    const spawnAt = setup.spawn ?? { x: 8, z: 8 };
+    const lookAt = setup.spawn?.lookAt ?? (setup.spawnTrees ? { x: SPAWN_TREES[0][0], z: SPAWN_TREES[0][1] } : null);
+    playerPosition.current.set(spawnAt.x + 0.5, groundTop(spawnAt.x, spawnAt.z) + 1 + PLAYER_HEIGHT, spawnAt.z + 0.5);
     camera.position.copy(playerPosition.current);
-    // Face the first spawn tree so it is in view when the game starts.
-    camera.rotation.y = Math.atan2(-(SPAWN_TREES[0][0] + 0.5 - 8.5), -(SPAWN_TREES[0][1] + 0.5 - 8.5));
+    if (lookAt) {
+      camera.rotation.y = Math.atan2(-(lookAt.x - spawnAt.x), -(lookAt.z - spawnAt.z));
+    }
 
     let lastPlayerChunkX = Math.floor(playerPosition.current.x / CHUNK_SIZE_X);
     let lastPlayerChunkZ = Math.floor(playerPosition.current.z / CHUNK_SIZE_Z);
@@ -455,7 +537,7 @@ export default function GameCanvas({
 
     updateDynamicChunks(true);
 
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < (setup.structure ? 0 : 4); i++) {
       spawnPig(Math.floor(6 + (Math.random() - 0.5) * 20), Math.floor(6 + (Math.random() - 0.5) * 20));
     }
 
@@ -498,6 +580,7 @@ export default function GameCanvas({
       const activeSlot = hotbarRef.current[activeSlotIndexRef.current];
       const activeItemDef = activeSlot?.itemId ? ITEM_REGISTRY[activeSlot.itemId] : null;
       const oldBlock = getBlockAtWorld(bx, by, bz);
+      if (!Number.isFinite(BLOCK_DROP_TABLE[oldBlock]?.hardness ?? 0)) return; // bedrock, water, workshop
       setBlockAtWorld(bx, by, bz, BlockType.AIR);
       playSoundEffect("block_break");
       spawnParticleBurst(new THREE.Vector3(bx + 0.5, by + 0.5, bz + 0.5), 0x94a3b8, 10);
@@ -524,8 +607,13 @@ export default function GameCanvas({
       const hit = targetedBlock();
       if (!hit) return;
       const target = hit.point.clone().sub(hit.face!.normal.clone().multiplyScalar(0.5));
-      if (getBlockAtWorld(Math.floor(target.x), Math.floor(target.y), Math.floor(target.z)) === BlockType.CRAFTING_TABLE) {
+      const targetType = getBlockAtWorld(Math.floor(target.x), Math.floor(target.y), Math.floor(target.z));
+      if (targetType === BlockType.CRAFTING_TABLE) {
         onOpenCraftingTableRef.current?.();
+        return;
+      }
+      if (STATION_BLOCKS[targetType]) {
+        // Stations are used through the on-screen prompt; never build on them.
         return;
       }
 
@@ -562,6 +650,16 @@ export default function GameCanvas({
       playerPosition.current.y = safeY + PLAYER_HEIGHT;
       playerVelocity.current.set(0, 0, 0);
     };
+
+    // Test hook for automated browser checks; only exists with ?debug=1.
+    const debug = new URLSearchParams(window.location.search).has("debug");
+    if (debug) {
+      (window as unknown as { __ppTeleport?: (x: number, z: number, yaw?: number) => void }).__ppTeleport = (x, z, yaw) => {
+        playerPosition.current.set(x + 0.5, playerPosition.current.y + 1, z + 0.5);
+        unstuck();
+        if (yaw !== undefined && cameraRef.current) cameraRef.current.rotation.y = yaw;
+      };
+    }
 
     gameActions.primary = primaryAction;
     gameActions.secondary = secondaryAction;
@@ -762,12 +860,14 @@ export default function GameCanvas({
     let lastTime = performance.now();
     let frameCount = 0;
     let walkAccum = 0;
+    let focusedId: string | null = null;
 
     const animate = () => {
       animationFrameIdRef.current = requestAnimationFrame(animate);
       const time = performance.now();
       const delta = Math.min((time - lastTime) / 1000, 0.1);
       lastTime = time;
+      if (suspendedRef.current) return;
       frameCount++;
 
       const cam = cameraRef.current;
@@ -925,6 +1025,38 @@ export default function GameCanvas({
         if (mob.rightLegBack) mob.rightLegBack.rotation.x = isMoving ? swingAngle : 0;
       }
 
+      // Characters turn toward the player when nearby
+      for (const npc of npcs) {
+        const dx = playerPosition.current.x - npc.x;
+        const dz = playerPosition.current.z - npc.z;
+        const dist = Math.hypot(dx, dz);
+        const target = dist < 8 ? Math.atan2(dx, dz) : npc.mesh.group.rotation.y;
+        let diff = target - npc.mesh.group.rotation.y;
+        diff = Math.atan2(Math.sin(diff), Math.cos(diff));
+        npc.mesh.group.rotation.y += diff * Math.min(1, delta * 4);
+        const idle = Math.sin(performance.now() * 0.002 + npc.x) * 0.06;
+        npc.mesh.leftArm.rotation.x = idle;
+        npc.mesh.rightArm.rotation.x = -idle;
+      }
+
+      // Nearest station or character within reach
+      if (frameCount % 6 === 0 && interactables.length > 0) {
+        let best: Interactable | null = null;
+        let bestDist = INTERACT_RANGE;
+        for (const it of interactables) {
+          const dist = Math.hypot(playerPosition.current.x - it.x, playerPosition.current.z - it.z);
+          const dy = Math.abs(playerPosition.current.y - PLAYER_HEIGHT - (it.y - 0.5));
+          if (dist < bestDist && dy < 2.5) {
+            best = it;
+            bestDist = dist;
+          }
+        }
+        if ((best?.id ?? null) !== focusedId) {
+          focusedId = best?.id ?? null;
+          onFocusChangeRef.current(best);
+        }
+      }
+
       // Player input
       const enabled = inputEnabledRef.current;
       if (enabled && (touchInput.lookDX !== 0 || touchInput.lookDY !== 0)) {
@@ -1062,6 +1194,7 @@ export default function GameCanvas({
         gameActions.unstuck = null;
       }
       resetTouchInput();
+      onFocusChangeRef.current(null);
 
       if (animationFrameIdRef.current) cancelAnimationFrame(animationFrameIdRef.current);
       rendererRef.current?.dispose();

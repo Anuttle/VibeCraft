@@ -1,6 +1,7 @@
 import { UiText } from "../i18n/types";
 import { Chapter } from "../game/quest";
 import { TUTORIAL } from "./tutorial";
+import { PRESS_CHAPTER } from "./press";
 
 export interface ChapterInfo {
   id: string;
@@ -61,7 +62,7 @@ export const CHAPTERS: ChapterInfo[] = [
     title: { en: "The Press", es: "La prensa" },
     anchor: { en: "A screw press built for printing", es: "Una prensa de tornillo para imprimir" },
     icon: "🖨️",
-    chapter: null,
+    chapter: PRESS_CHAPTER,
   },
   {
     id: "indulgences",

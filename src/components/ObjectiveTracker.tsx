@@ -19,7 +19,7 @@ let lastAutoRead = "";
 
 /** Amount shown to the student; look progress is shown as a bar only. */
 function displayTarget(o: Objective): number | null {
-  if (o.type === "look" || o.type === "open_inventory") return null;
+  if (o.type === "look" || o.type === "open_inventory" || o.type === "talk" || o.type === "station") return null;
   return objectiveTarget(o);
 }
 

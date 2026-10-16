@@ -11,6 +11,11 @@ import DialogueBox from "./components/DialogueBox";
 import ObjectiveTracker from "./components/ObjectiveTracker";
 import TouchControls from "./components/TouchControls";
 import TeacherPanel from "./components/TeacherPanel";
+import InteractPrompt from "./components/InteractPrompt";
+import Typesetting from "./components/minigames/Typesetting";
+import PressGame from "./components/minigames/PressGame";
+import { Interactable, StationId } from "./game/world";
+import { TYPESET } from "./content/press";
 import { ChapterComplete, ChapterSelect, PauseMenu, TitleScreen } from "./components/screens";
 import { AppContext, AppContextValue } from "./AppContext";
 import { BlockType, InventorySlot } from "./types";
@@ -23,6 +28,7 @@ import { narrator } from "./audio/narrator";
 import { detectInputMode, gameActions } from "./game/input";
 import { PlayerInventory, addItem, consumeHotbarItem, emptyInventory, wearTool } from "./game/inventory";
 import {
+  DialogueLine,
   GameEvent,
   INITIAL_QUEST_STATE,
   QuestState,
@@ -198,8 +204,13 @@ export default function App() {
 
   const [isLocked, setIsLocked] = useState(false);
   const [paused, setPaused] = useState(false);
+  const [focus, setFocus] = useState<Interactable | null>(null);
+  const [station, setStation] = useState<StationId | null>(null);
+  const [adHocLine, setAdHocLine] = useState<DialogueLine | null>(null);
+  const [typesetLines, setTypesetLines] = useState<string[] | null>(null);
 
-  const blockingModal = dialogueActive || isInventoryOpen || showComplete || teacherOpen;
+  const blockingModal =
+    dialogueActive || isInventoryOpen || showComplete || teacherOpen || station !== null || adHocLine !== null;
   const showPause =
     screen === "game" && !blockingModal && (paused || (inputMode === "mouse" && !isLocked));
   const inputEnabled =
@@ -256,6 +267,50 @@ export default function App() {
     handleGameEvent({ type: "inventory_opened" });
   }, [handleGameEvent]);
 
+  /** Apply an event now and resume play unless it starts a conversation. */
+  const applyAndResume = (event: GameEvent) => {
+    const next = applyEvent(steps, quest, event);
+    setQuest(next);
+    if (!isDialogueActive(steps, next) && !(next.done && !quest.done)) resumeFromClick();
+  };
+
+  const handleUse = () => {
+    if (!focus || !inputEnabled) return;
+    narrator.unlock();
+    if (focus.kind === "station" && focus.station) {
+      setStation(focus.station);
+      return;
+    }
+    const isGoal = step?.objective?.type === "talk" && step.objective.npcId === focus.id;
+    if (isGoal) {
+      handleGameEvent({ type: "talked", npcId: focus.id });
+      return;
+    }
+    const npc = chapterInfo?.chapter?.world?.npcs?.find((n) => n.id === focus.id);
+    if (npc?.idle) setAdHocLine({ id: `npc.${npc.id}.idle`, speaker: npc.name, text: npc.idle });
+  };
+  const handleUseRef = useRef(handleUse);
+  handleUseRef.current = handleUse;
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.code === "KeyF" && !e.repeat) handleUseRef.current();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  const finishStation = (id: StationId, lines?: string[]) => {
+    if (lines) setTypesetLines(lines);
+    setStation(null);
+    applyAndResume({ type: "station_done", station: id });
+  };
+
+  const closeStation = () => {
+    setStation(null);
+    resumeFromClick();
+  };
+
   const handleDialogueNext = () => {
     const next = advanceDialogue(steps, quest);
     setQuest(next);
@@ -276,6 +331,10 @@ export default function App() {
     setActiveSlotIndex(0);
     setIsInventoryOpen(false);
     setPaused(false);
+    setStation(null);
+    setAdHocLine(null);
+    setFocus(null);
+    setTypesetLines(null);
     setScreen("game");
   };
 
@@ -339,6 +398,9 @@ export default function App() {
               onGameEvent={handleGameEvent}
               spawnDropExternalRef={spawnDropExternalRef}
               onOpenCraftingTable={handleOpenCraftingTable}
+              world={chapterInfo?.chapter?.world ?? {}}
+              onFocusChange={setFocus}
+              suspended={station !== null || teacherOpen}
             />
 
             <HUD
@@ -352,7 +414,31 @@ export default function App() {
               <TouchControls onOpenBag={handleToggleInventory} onPause={() => setPaused(true)} />
             )}
 
-            {objective && !isInventoryOpen && <div className="absolute left-4 top-4 z-30">{objective}</div>}
+            {objective && !isInventoryOpen && station === null && <div className="absolute left-4 top-4 z-30">{objective}</div>}
+
+            {focus && inputEnabled && <InteractPrompt target={focus} onUse={handleUse} />}
+
+            {station === "typecase" && (
+              <Typesetting onComplete={(lines) => finishStation("typecase", lines)} onClose={closeStation} />
+            )}
+            {station === "press" && (
+              <PressGame
+                lines={typesetLines ?? TYPESET[settings.band][lang].lines}
+                onComplete={() => finishStation("press")}
+                onClose={closeStation}
+              />
+            )}
+
+            {adHocLine && !currentLine && (
+              <DialogueBox
+                key={adHocLine.id}
+                line={adHocLine}
+                onNext={() => {
+                  setAdHocLine(null);
+                  resumeFromClick();
+                }}
+              />
+            )}
 
             {currentLine && <DialogueBox key={`${quest.stepIndex}.${quest.dialogueIndex}`} line={currentLine} onNext={handleDialogueNext} />}
 

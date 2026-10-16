@@ -21,6 +21,12 @@ body {
   touch-action: manipulation;
 }
 
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-6px); }
+  75% { transform: translateX(6px); }
+}
+
 input,
 textarea {
   -webkit-user-select: text;

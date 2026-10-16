@@ -16,6 +16,14 @@ export enum BlockType {
   SNOW = 14,
   WATER = 15,
   ICE = 16,
+  // Workshop building blocks and stations (Phase 2)
+  PLANKS = 17,
+  TIMBER = 18,
+  PLASTER = 19,
+  TYPE_CASE = 20,
+  PRESS = 21,
+  PAPER = 22,
+  INK = 23,
 }
 
 export interface BlockConfig {
@@ -44,6 +52,19 @@ export const BLOCK_CONFIGS: Record<BlockType, BlockConfig> = {
   [BlockType.SNOW]: { name: "Snow", color: "#f8fafc", isSolid: true }, // Slate-50
   [BlockType.WATER]: { name: "Water", color: "#38bdf8", isSolid: false, isTransparent: true }, // Sky-400
   [BlockType.ICE]: { name: "Ice", color: "#bae6fd", isSolid: true, isTransparent: true }, // Sky-200
+  [BlockType.PLANKS]: { name: "Planks", color: "#c08a4d", isSolid: true },
+  [BlockType.TIMBER]: { name: "Timber Beam", color: "#4a2c17", isSolid: true },
+  [BlockType.PLASTER]: { name: "Plaster", color: "#efe6d2", isSolid: true },
+  [BlockType.TYPE_CASE]: { name: "Type Case", color: "#6b3f1d", isSolid: true },
+  [BlockType.PRESS]: { name: "Printing Press", color: "#5b3a1e", isSolid: true },
+  [BlockType.PAPER]: { name: "Paper Stack", color: "#f5efe0", isSolid: true },
+  [BlockType.INK]: { name: "Ink Bench", color: "#1f1a17", isSolid: true },
+};
+
+/** Blocks that open a workshop activity when used. */
+export const STATION_BLOCKS: Partial<Record<BlockType, "typecase" | "press">> = {
+  [BlockType.TYPE_CASE]: "typecase",
+  [BlockType.PRESS]: "press",
 };
 
 export interface ChunkKey {

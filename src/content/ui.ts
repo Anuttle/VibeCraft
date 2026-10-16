@@ -124,6 +124,74 @@ export const UI = {
   },
   langNameEn: { en: "English", es: "inglés" },
   langNameEs: { en: "Spanish", es: "español" },
+
+  // Using stations and talking to characters
+  talkTo: { en: "Talk to {name}", es: "Hablar con {name}" },
+  useThing: { en: "Use {thing}", es: "Usar {thing}" },
+
+  // Typesetting
+  tsTitle: { en: "Type case", es: "Caja de tipos" },
+  tsCopy: { en: "Set this text", es: "Compón este texto" },
+  tsStick: { en: "Composing stick (the type, backwards)", es: "Componedor (los tipos, al revés)" },
+  tsPreview: { en: "How it will print", es: "Así se imprimirá" },
+  tsHowK2: {
+    en: "Tap the letters to spell the word. Metal letters are backwards!",
+    es: "Toca las letras para formar la palabra. ¡Las letras de metal están al revés!",
+  },
+  tsHow: {
+    en: "Tap the sorts in order. Each metal letter is backwards, so the page will print the right way.",
+    es: "Toca los tipos en orden. Cada letra de metal está al revés, para que la página se imprima al derecho.",
+  },
+  upperCase: { en: "Upper case · capital letters", es: "Caja alta · mayúsculas" },
+  lowerCase: { en: "Lower case · small letters", es: "Caja baja · minúsculas" },
+  tray: { en: "Type case", es: "Caja de tipos" },
+  space: { en: "Space", es: "Espacio" },
+  tsWrong: { en: "Not that one. Look again!", es: "Ese no. ¡Mira otra vez!" },
+  tsJustify: {
+    en: "Fill the line: tap + to add spaces between words until the line is full.",
+    es: "Llena la línea: toca + para agregar espacios entre las palabras hasta completarla.",
+  },
+  tsEven: { en: "Spread the spaces more evenly.", es: "Reparte los espacios de forma más pareja." },
+  lineCount: { en: "Line {n}: {len} / {width}", es: "Línea {n}: {len} / {width}" },
+  lineDone: { en: "Line full!", es: "¡Línea llena!" },
+  proofTitle: { en: "Proofreading", es: "Corrección de pruebas" },
+  proofHow: {
+    en: "Someone else set this line and made one mistake. Tap the wrong letter.",
+    es: "Otra persona compuso esta línea y cometió un error. Toca la letra equivocada.",
+  },
+  proofFound: { en: "You found it! Good eye.", es: "¡Lo encontraste! Buen ojo." },
+  proofNo: { en: "That letter is right. Keep looking.", es: "Esa letra está bien. Sigue buscando." },
+  tsDone: { en: "The type is ready for the press!", es: "¡Los tipos están listos para la prensa!" },
+  finish: { en: "Finish", es: "Terminar" },
+
+  // Printing
+  pressTitle: { en: "Printing press", es: "La prensa" },
+  pressInk: {
+    en: "1. Ink the type: tap the ink balls. Stop when the ink is in the green zone.",
+    es: "1. Pon tinta en los tipos: toca las balas de tinta. Detente cuando la tinta esté en la zona verde.",
+  },
+  pressInkK2: { en: "1. Tap the ink balls until the type is full of ink.", es: "1. Toca las balas de tinta hasta llenar los tipos de tinta." },
+  pressPaper: { en: "2. Put a damp sheet of paper on the press.", es: "2. Coloca una hoja de papel húmeda en la prensa." },
+  pressPull: {
+    en: "3. Hold the bar to pull. Let go when the pressure is in the green zone.",
+    es: "3. Mantén presionada la barra para jalar. Suéltala cuando la presión esté en la zona verde.",
+  },
+  pressPullK2: { en: "3. Hold the bar until the meter is full.", es: "3. Mantén presionada la barra hasta llenar el medidor." },
+  ink: { en: "Ink", es: "Tinta" },
+  pressure: { en: "Pressure", es: "Presión" },
+  dabInk: { en: "Dab ink", es: "Entintar" },
+  doneInking: { en: "Done inking", es: "Listo con la tinta" },
+  placePaper: { en: "Place paper", es: "Colocar papel" },
+  holdToPull: { en: "Hold to pull", es: "Mantén para jalar" },
+  resultGood: { en: "A clean, sharp page!", es: "¡Una página limpia y nítida!" },
+  resultFaint: { en: "Too faint. Use more ink.", es: "Muy clara. Usa más tinta." },
+  resultBlotchy: { en: "Too much ink. It's blotchy.", es: "Demasiada tinta. Quedó manchada." },
+  resultLight: { en: "Too light. Pull a little longer.", es: "Muy suave. Jala un poco más." },
+  resultSmudged: { en: "Too hard! The page smudged.", es: "¡Demasiada fuerza! La página se corrió." },
+  goodSheets: { en: "Good pages: {n} / {total}", es: "Páginas buenas: {n} / {total}" },
+  printAnother: { en: "Print another page", es: "Imprimir otra página" },
+  timer: { en: "Time: {s} s", es: "Tiempo: {s} s" },
+  printedIn: { en: "You printed {n} pages in {s} seconds.", es: "Imprimiste {n} páginas en {s} segundos." },
 } satisfies Record<string, UiText>;
 
 export type UiKey = keyof typeof UI;
