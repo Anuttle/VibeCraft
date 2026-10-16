@@ -18,6 +18,7 @@ import type { ActivityResult, QuizResult } from "./game/activities";
 import { Interactable, StationId } from "./game/world";
 import { ChapterComplete, ChapterSelect, JournalScreen, PauseMenu, ScreenFrame, TitleScreen } from "./components/screens";
 import { GlossaryHost, GlossaryList } from "./components/Glossary";
+import { PrintJob, PrintView } from "./components/Print";
 import { AppContext, AppContextValue } from "./AppContext";
 import { BlockType, InventorySlot } from "./types";
 import { ITEM_REGISTRY } from "./utils/items";
@@ -84,6 +85,8 @@ export default function App() {
   const [langOverride, setLangOverride] = useState<Lang | null>(null);
   const [screen, setScreen] = useState<Screen>(() => (activeProfileId ? "chapters" : "title"));
   const [teacherOpen, setTeacherOpen] = useState(false);
+  const [printJob, setPrintJob] = useState<PrintJob | null>(null);
+  const endPrint = useCallback(() => setPrintJob(null), []);
 
   const profile = profiles.find((p) => p.id === activeProfileId) ?? null;
   const lang: Lang = settings.allowLangSwitch ? profile?.lang ?? langOverride ?? settings.lang : settings.lang;
@@ -414,7 +417,7 @@ export default function App() {
 
   return (
     <AppContext.Provider value={ctx}>
-      <div className="relative flex h-[100dvh] w-screen flex-col overflow-hidden bg-stone-950 font-sans">
+      <div className="screen-only relative flex h-[100dvh] w-screen flex-col overflow-hidden bg-stone-950 font-sans">
         {screen === "game" ? (
           <>
             <GameCanvas
@@ -586,7 +589,11 @@ export default function App() {
             onOpenJournal={() => setScreen("journal")}
           />
         ) : screen === "journal" && profile ? (
-          <JournalScreen profile={profile} onBack={() => setScreen("chapters")} />
+          <JournalScreen
+            profile={profile}
+            onBack={() => setScreen("chapters")}
+            onPrint={() => setPrintJob({ kind: "journal", profileId: profile.id })}
+          />
         ) : (
           <TitleScreen
             profiles={profiles}
@@ -607,12 +614,15 @@ export default function App() {
         {teacherOpen && (
           <TeacherPanel
             settings={settings}
+            profiles={profiles}
+            onPrint={setPrintJob}
             onSave={handleSaveSettings}
             onClearData={handleClearData}
             onClose={() => setTeacherOpen(false)}
           />
         )}
       </div>
+      {printJob && <PrintView job={printJob} profiles={profiles} onDone={endPrint} />}
     </AppContext.Provider>
   );
 }

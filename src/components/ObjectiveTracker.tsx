@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { Target, Volume2 } from "lucide-react";
-import { Objective, ObjectiveText, objectiveTarget } from "../game/quest";
+import { Objective, ObjectiveText, displayTarget, objectiveTarget } from "../game/quest";
 import { useApp } from "../AppContext";
 import { narrator } from "../audio/narrator";
 
@@ -17,12 +17,6 @@ interface ObjectiveTrackerProps {
 // last goal read automatically is remembered here to avoid repeating it.
 let lastAutoRead = "";
 
-/** Amount shown to the student; look progress is shown as a bar only. */
-function displayTarget(o: Objective): number | null {
-  if (o.type === "look" || o.type === "open_inventory" || o.type === "talk" || o.type === "station" || o.type === "journal") return null;
-  return objectiveTarget(o);
-}
-
 export default function ObjectiveTracker({ stepId, objective, text, progress, compact }: ObjectiveTrackerProps) {
   const app = useApp();
   const target = objectiveTarget(objective);
@@ -37,7 +31,8 @@ export default function ObjectiveTracker({ stepId, objective, text, progress, co
   const spoken = hint ? `${goalText} ${hint}` : goalText;
   const read = () => {
     narrator.speak({
-      id: `${stepId}.goal`,
+      // The hint differs for touch and mouse, so each has its own recording.
+      id: `${stepId}.goal.${app.inputMode}`,
       text: spoken,
       lang: app.lang,
       tier: goal.tier,

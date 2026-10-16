@@ -1,10 +1,11 @@
-import { Lang, Tier, stripMarkup } from "../i18n/types";
+import { Lang, Tier, speakable } from "../i18n/types";
 
 /**
  * Reads game text aloud.
  *
  * 1. If a recorded or pre-generated file is listed in /audio/manifest.json
- *    (path: audio/<lang>/<tier>/<contentId>.mp3), it is played.
+ *    (path: audio/<lang>/<tier>/<contentId>.<mp3|m4a|wav|ogg>), it is played.
+ *    `npm run audio:manifest` rebuilds the list from the files present.
  * 2. Otherwise the browser's speech synthesis is used, preferring
  *    Latin American Spanish voices for Spanish.
  *
@@ -85,7 +86,8 @@ function silentWavDataUri(): string {
 
 class Narrator {
   private voices: SpeechSynthesisVoice[] = [];
-  private manifest: Set<string> | null = null;
+  /** "lang/tier/id" → file path under audio/, e.g. "es/T2/press.intro.mp3". */
+  private manifest: Map<string, string> | null = null;
   private audioEl: HTMLAudioElement | null = null;
   private unlocked = false;
   private token = 0;
@@ -118,7 +120,12 @@ class Narrator {
       const res = await fetch(`${import.meta.env.BASE_URL}audio/manifest.json`, { cache: "no-cache" });
       if (!res.ok) return;
       const data = (await res.json()) as { files?: string[] };
-      this.manifest = new Set(data.files ?? []);
+      this.manifest = new Map(
+        (data.files ?? []).map((f) => {
+          const withExt = /\.(mp3|m4a|wav|ogg)$/i.test(f) ? f : `${f}.mp3`;
+          return [withExt.replace(/\.(mp3|m4a|wav|ogg)$/i, ""), withExt] as const;
+        })
+      );
     } catch {
       this.manifest = null;
     }
@@ -167,8 +174,9 @@ class Narrator {
     };
 
     const fileKey = req.id ? `${req.lang}/${req.tier}/${req.id}` : null;
-    if (fileKey && this.manifest?.has(fileKey) && this.audioEl) {
-      this.audioEl.src = `${import.meta.env.BASE_URL}audio/${fileKey}.mp3`;
+    const file = fileKey ? this.manifest?.get(fileKey) : undefined;
+    if (file && this.audioEl) {
+      this.audioEl.src = `${import.meta.env.BASE_URL}audio/${file}`;
       this.audioEl.playbackRate = req.rate ?? 1;
       this.audioEl.onended = done;
       this.audioEl.play().catch(() => this.speakSynth(req, cb, token));
@@ -183,7 +191,7 @@ class Narrator {
       return;
     }
     if (this.voices.length === 0) this.voices = window.speechSynthesis.getVoices();
-    const u = new SpeechSynthesisUtterance(stripMarkup(req.text));
+    const u = new SpeechSynthesisUtterance(speakable(req.text, req.lang));
     const voice = pickVoice(this.voices, req.lang);
     if (voice) u.voice = voice;
     u.lang = voice?.lang ?? SPEECH_LANG[req.lang];

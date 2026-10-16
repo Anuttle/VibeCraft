@@ -6,9 +6,14 @@ import { ClassSettings, buildGroupLink, getTeacherPin, setTeacherPin } from "../
 import { CHAPTERS } from "../content/chapters";
 import { narrator } from "../audio/narrator";
 import { LangToggle } from "./screens";
+import { Profile } from "../save/profiles";
+import { PrintJob } from "./Print";
+import { chapterStatus, dateStamp, downloadText, responsesCsv, summaryCsv } from "../teacher/report";
 
 interface TeacherPanelProps {
   settings: ClassSettings;
+  profiles: Profile[];
+  onPrint: (job: PrintJob) => void;
   onSave: (s: ClassSettings) => void;
   onClearData: () => void;
   onClose: () => void;
@@ -105,7 +110,81 @@ function Toggle({ label, checked, onChange, note }: { label: string; checked: bo
   );
 }
 
-function Settings({ settings, onSave, onClearData, onClose }: TeacherPanelProps) {
+function ClassProgress({ profiles, onPrint }: { profiles: Profile[]; onPrint: (job: PrintJob) => void }) {
+  const app = useApp();
+  const story = CHAPTERS.filter((c) => c.chapter !== null);
+  if (profiles.length === 0) return <p className="text-stone-400">{app.ui("noStudents")}</p>;
+  return (
+    <div className="flex flex-col gap-3">
+      <p className="text-xs text-stone-400">{app.ui("classProgressNote")}</p>
+      <div className="overflow-x-auto rounded-xl border border-stone-700">
+        <table className="w-full text-left text-sm text-stone-200">
+          <thead className="bg-stone-800 text-xs uppercase text-stone-400">
+            <tr>
+              <th className="px-3 py-2">{app.ui("student")}</th>
+              {story.map((c) => (
+                <th key={c.id} className="px-2 py-2 text-center" title={app.pick(c.title)}>
+                  {c.icon}
+                </th>
+              ))}
+              <th className="px-3 py-2" />
+            </tr>
+          </thead>
+          <tbody>
+            {profiles.map((p) => (
+              <tr key={p.id} className="border-t border-stone-800">
+                <td className="px-3 py-2 font-semibold">{p.name}</td>
+                {story.map((c) => {
+                  const st = chapterStatus(p, c.id);
+                  return (
+                    <td key={c.id} className="px-2 py-2 text-center font-mono text-xs">
+                      {st.completed ? <span className="text-emerald-400">✓</span> : st.started ? "…" : ""}
+                      {st.scored ? <div className="text-stone-400">{st.correct}/{st.scored}</div> : null}
+                    </td>
+                  );
+                })}
+                <td className="px-3 py-2">
+                  <button
+                    type="button"
+                    onClick={() => onPrint({ kind: "journal", profileId: p.id })}
+                    className="min-h-10 whitespace-nowrap rounded-lg border border-stone-600 bg-stone-800 px-3 text-xs"
+                  >
+                    🖨️ {app.ui("printJournal")}
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={() => downloadText(`printing-press-summary-${dateStamp()}.csv`, summaryCsv(profiles, app.lang))}
+          className="min-h-12 rounded-xl border border-stone-600 bg-stone-800 px-4 text-stone-100"
+        >
+          ⬇️ {app.ui("downloadSummary")}
+        </button>
+        <button
+          type="button"
+          onClick={() => downloadText(`printing-press-journal-answers-${dateStamp()}.csv`, responsesCsv(profiles, app.lang))}
+          className="min-h-12 rounded-xl border border-stone-600 bg-stone-800 px-4 text-stone-100"
+        >
+          ⬇️ {app.ui("downloadAnswers")}
+        </button>
+        <button
+          type="button"
+          onClick={() => onPrint({ kind: "class" })}
+          className="min-h-12 rounded-xl border border-stone-600 bg-stone-800 px-4 text-stone-100"
+        >
+          🖨️ {app.ui("printReport")}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function Settings({ settings, profiles, onPrint, onSave, onClearData, onClose }: TeacherPanelProps) {
   const app = useApp();
   const [draft, setDraft] = useState<ClassSettings>(settings);
   const [copied, setCopied] = useState(false);
@@ -211,6 +290,11 @@ function Settings({ settings, onSave, onClearData, onClose }: TeacherPanelProps)
             {copied ? app.ui("copied") : app.ui("copy")}
           </button>
         </div>
+      </section>
+
+      <section className="flex flex-col gap-2">
+        <h3 className="font-bold text-amber-300">{app.ui("classProgress")}</h3>
+        <ClassProgress profiles={profiles} onPrint={onPrint} />
       </section>
 
       <section className="flex flex-col gap-2">

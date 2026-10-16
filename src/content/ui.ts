@@ -256,6 +256,25 @@ export const UI = {
   glossary: { en: "Glossary", es: "Glosario" },
   search: { en: "Search", es: "Buscar" },
   noMatches: { en: "No matching words.", es: "No hay palabras que coincidan." },
+
+  // Teacher tools
+  printJournal: { en: "Print journal", es: "Imprimir diario" },
+  printedOn: { en: "Printed {date}", es: "Impreso el {date}" },
+  classProgress: { en: "Class progress on this device", es: "Progreso de la clase en este dispositivo" },
+  classProgressNote: {
+    en: "Each device keeps its own students. Download the files on each iPad and combine them in a spreadsheet.",
+    es: "Cada dispositivo guarda a sus propios estudiantes. Descarga los archivos en cada iPad y combínalos en una hoja de cálculo.",
+  },
+  downloadSummary: { en: "Download summary (CSV)", es: "Descargar resumen (CSV)" },
+  downloadAnswers: { en: "Download journal answers (CSV)", es: "Descargar respuestas del diario (CSV)" },
+  printReport: { en: "Print class report", es: "Imprimir informe de la clase" },
+  noStudents: { en: "No students on this device yet.", es: "Todavía no hay estudiantes en este dispositivo." },
+  student: { en: "Student", es: "Estudiante" },
+  chaptersDone: { en: "Chapters done", es: "Capítulos completados" },
+  printKey: {
+    en: "✓ completed · … in progress · numbers = journal check score",
+    es: "✓ completado · … en curso · números = puntaje de la revisión del diario",
+  },
 } satisfies Record<string, UiText>;
 
 export type UiKey = keyof typeof UI;

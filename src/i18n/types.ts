@@ -73,3 +73,33 @@ export function format(text: string, vars?: Record<string, string | number>): st
 export function stripMarkup(text: string): string {
   return text.replace(/\*/g, "");
 }
+
+// Icons used in hints, said as words so speech doesn't read emoji names.
+const SPOKEN_ICONS: Record<Lang, Array<[RegExp, string]>> = {
+  en: [
+    [/✋/g, "the hand button"],
+    [/💬/g, "the talk button"],
+    [/🎒/g, "the bag button"],
+    [/⛏️?/g, "the pick button"],
+    [/🧱/g, "the block button"],
+    [/␣/g, "space"],
+  ],
+  es: [
+    [/✋/g, "el botón de la mano"],
+    [/💬/g, "el botón de hablar"],
+    [/🎒/g, "el botón de la bolsa"],
+    [/⛏️?/g, "el botón del pico"],
+    [/🧱/g, "el botón del bloque"],
+    [/␣/g, "espacio"],
+  ],
+};
+
+/** Text ready for a speech engine or voice actor: no markup, icons said as words, other emoji dropped. */
+export function speakable(text: string, lang: Lang): string {
+  let out = stripMarkup(text);
+  for (const [re, word] of SPOKEN_ICONS[lang]) out = out.replace(re, word);
+  return out
+    .replace(/\p{Extended_Pictographic}\uFE0F?/gu, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}

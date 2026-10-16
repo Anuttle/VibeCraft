@@ -292,6 +292,18 @@ Each chapter's scene is built from one room template with four station spots (`m
   - hold reaction windows are long enough
   - every chapter ends in a journal check
 
+### Phase 4: Teacher tools
+
+| Area | Where |
+|---|---|
+| Class progress table, summary and per-answer CSV downloads (UTF-8 with BOM, so accents survive) | `src/teacher/report.ts`, `TeacherPanel.tsx` |
+| Printable student journal and class report; on iPad, Print or Save to Files as PDF | `src/components/Print.tsx`, print styles in `index.css` |
+| Recording sheets for voice actors, a manifest rebuilt from the files present, optional Gemini TTS generation | `scripts/audio.ts` (`npm run audio`) |
+| Recorded files in mp3, m4a, wav or ogg, with per-mode goal audio | `audio/narrator.ts` |
+| Hint icons spoken as words (✋ → "the hand button") | `speakable()` in `i18n/types.ts` |
+| Relative build paths; GitHub Actions workflow that checks every pull request and publishes `main` to Pages | `vite.config.ts`, `.github/workflows/pages.yml` |
+| Teacher guide | `docs/TEACHER_GUIDE.md` |
+
 ### Device support
 
 - **Touch mode** is used on any touch-capable device (iPad, touchscreen Chromebooks). Keyboard movement still works, so an iPad with a keyboard case gets both.

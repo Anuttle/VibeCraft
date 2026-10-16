@@ -372,10 +372,11 @@ interface JournalScreenProps {
   profile: Profile;
   startTab?: "journal" | "glossary";
   onBack: () => void;
+  onPrint: () => void;
 }
 
 /** The student's Printer's Journal (saved checks) and the glossary. */
-export function JournalScreen({ profile, startTab = "journal", onBack }: JournalScreenProps) {
+export function JournalScreen({ profile, startTab = "journal", onBack, onPrint }: JournalScreenProps) {
   const app = useApp();
   const [tab, setTab] = useState<"journal" | "glossary">(startTab);
   const entries = CHAPTERS.filter((c) => profile.journal?.[c.id]);
@@ -414,6 +415,13 @@ export function JournalScreen({ profile, startTab = "journal", onBack }: Journal
           <p className="text-center text-lg text-stone-400">{app.ui("journalEmpty")}</p>
         ) : (
           <div className="flex flex-col gap-4">
+            <button
+              type="button"
+              onClick={onPrint}
+              className="flex min-h-12 items-center gap-2 self-end rounded-xl border border-stone-600 bg-stone-800 px-4 text-stone-100"
+            >
+              🖨️ {app.ui("printJournal")}
+            </button>
             {entries.map((c) => {
               const e = profile.journal![c.id];
               return (

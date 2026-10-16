@@ -5,6 +5,9 @@ import {defineConfig} from 'vite';
 
 export default defineConfig(() => {
   return {
+    // Relative paths so the built game works from any folder or host
+    // (GitHub Pages, a school web server, or a USB stick opened in a browser).
+    base: "./",
     plugins: [react(), tailwindcss()],
     resolve: {
       alias: {

@@ -97,6 +97,12 @@ export function objectiveTarget(o: Objective): number {
   }
 }
 
+/** Amount shown to the student (and put in {n}); null for goals shown as a bar or with no count. */
+export function displayTarget(o: Objective): number | null {
+  if (o.type === "look" || o.type === "open_inventory" || o.type === "talk" || o.type === "station" || o.type === "journal") return null;
+  return objectiveTarget(o);
+}
+
 /** How much an event advances an objective (0 if unrelated). */
 function eventProgress(o: Objective, e: GameEvent): number {
   if (o.type === "walk" && e.type === "walked") return e.distance;
