@@ -4,6 +4,7 @@ import { useApp } from "../AppContext";
 import { Lang } from "../i18n/types";
 import { Profile } from "../save/profiles";
 import { CHAPTERS } from "../content/chapters";
+import { GlossaryList } from "./Glossary";
 
 // Full-screen menus shown outside of gameplay.
 
@@ -164,6 +165,7 @@ interface ChapterSelectProps {
   onPlay: (chapterId: string) => void;
   onSwitchProfile: () => void;
   onOpenTeacher: () => void;
+  onOpenJournal: () => void;
 }
 
 export function ChapterSelect({
@@ -175,6 +177,7 @@ export function ChapterSelect({
   onPlay,
   onSwitchProfile,
   onOpenTeacher,
+  onOpenJournal,
 }: ChapterSelectProps) {
   const app = useApp();
   const visible = CHAPTERS.filter((c) => c.number === null || enabledChapters.includes(c.number));
@@ -193,7 +196,16 @@ export function ChapterSelect({
 
       <Title />
       <p className="text-xl font-semibold text-stone-100">{app.ui("hello", { name: profile.name })}</p>
-      {canSwitchLang && <LangToggle lang={lang} onChange={onLangChange} />}
+      <div className="flex flex-wrap items-center justify-center gap-3">
+        {canSwitchLang && <LangToggle lang={lang} onChange={onLangChange} />}
+        <button
+          type="button"
+          onClick={onOpenJournal}
+          className="flex min-h-12 items-center gap-2 rounded-xl border border-amber-700/60 bg-stone-900 px-4 font-semibold text-amber-100"
+        >
+          📖 {app.ui("journal")} · {app.ui("glossary")}
+        </button>
+      </div>
 
       <h2 className="flex items-center gap-2 text-lg font-bold text-amber-300">
         <BookOpen className="h-5 w-5" />
@@ -260,6 +272,7 @@ interface PauseMenuProps {
   onResume: () => void;
   onSafeSpot: () => void;
   onChapters: () => void;
+  onGlossary: () => void;
 }
 
 export function PauseMenu({
@@ -270,6 +283,7 @@ export function PauseMenu({
   onResume,
   onSafeSpot,
   onChapters,
+  onGlossary,
 }: PauseMenuProps) {
   const app = useApp();
   return (
@@ -297,6 +311,13 @@ export function PauseMenu({
               <span className="font-bold text-amber-400">{audio ? app.ui("on") : app.ui("off")}</span>
             </button>
           )}
+          <button
+            type="button"
+            onClick={onGlossary}
+            className="min-h-12 rounded-xl border border-stone-700 bg-stone-800 px-4 text-stone-100"
+          >
+            🔤 {app.ui("glossary")}
+          </button>
           <button
             type="button"
             onClick={onSafeSpot}
@@ -342,6 +363,86 @@ export function ChapterComplete({ onKeepExploring, onChapters }: { onKeepExplori
             🧭 {app.ui("keepExploring")}
           </button>
         </div>
+      </div>
+    </ScreenFrame>
+  );
+}
+
+interface JournalScreenProps {
+  profile: Profile;
+  startTab?: "journal" | "glossary";
+  onBack: () => void;
+}
+
+/** The student's Printer's Journal (saved checks) and the glossary. */
+export function JournalScreen({ profile, startTab = "journal", onBack }: JournalScreenProps) {
+  const app = useApp();
+  const [tab, setTab] = useState<"journal" | "glossary">(startTab);
+  const entries = CHAPTERS.filter((c) => profile.journal?.[c.id]);
+
+  return (
+    <ScreenFrame>
+      <button
+        type="button"
+        onClick={onBack}
+        className="absolute left-4 top-4 flex min-h-11 items-center gap-1 rounded-xl border border-stone-700 bg-stone-900/80 px-3 text-sm text-stone-300"
+      >
+        <ChevronLeft className="h-5 w-5" />
+        {app.ui("back")}
+      </button>
+      <h1 className="font-serif text-3xl font-black text-amber-100">📖 {app.ui("journalTitle")}</h1>
+      <p className="text-stone-300">{profile.name}</p>
+      <div className="flex rounded-xl border border-stone-700 bg-stone-900 p-1" role="tablist">
+        {(["journal", "glossary"] as const).map((t) => (
+          <button
+            key={t}
+            type="button"
+            role="tab"
+            aria-selected={tab === t}
+            onClick={() => setTab(t)}
+            className={`min-h-11 rounded-lg px-5 font-bold ${tab === t ? "bg-amber-500 text-stone-950" : "text-stone-300"}`}
+          >
+            {app.ui(t)}
+          </button>
+        ))}
+      </div>
+
+      <div className="w-full">
+        {tab === "glossary" ? (
+          <GlossaryList />
+        ) : entries.length === 0 ? (
+          <p className="text-center text-lg text-stone-400">{app.ui("journalEmpty")}</p>
+        ) : (
+          <div className="flex flex-col gap-4">
+            {entries.map((c) => {
+              const e = profile.journal![c.id];
+              return (
+                <article key={c.id} className="rounded-2xl border border-amber-800/50 bg-[#f3e9d2] p-5 text-stone-900 shadow">
+                  <header className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
+                    <h2 className="font-serif text-xl font-bold">
+                      {c.icon} {app.pick(c.title)}
+                    </h2>
+                    <span className="text-sm text-stone-600">
+                      {new Date(e.date).toLocaleDateString(app.lang === "es" ? "es-MX" : "en-US")}
+                      {e.scored > 0 && ` · ${app.ui("score", { n: e.correct, total: e.scored })}`}
+                    </span>
+                  </header>
+                  <ol className="flex flex-col gap-2">
+                    {e.responses.map((r, i) => (
+                      <li key={i} className="border-t border-amber-900/20 pt-2">
+                        <p className="text-sm font-semibold text-stone-700">{r.prompt}</p>
+                        <p className="whitespace-pre-line font-serif text-lg">
+                          {r.correct === true ? "✅ " : r.correct === false ? "↺ " : "✍️ "}
+                          {r.answer}
+                        </p>
+                      </li>
+                    ))}
+                  </ol>
+                </article>
+              );
+            })}
+          </div>
+        )}
       </div>
     </ScreenFrame>
   );

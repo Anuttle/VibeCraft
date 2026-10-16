@@ -12,11 +12,12 @@ import ObjectiveTracker from "./components/ObjectiveTracker";
 import TouchControls from "./components/TouchControls";
 import TeacherPanel from "./components/TeacherPanel";
 import InteractPrompt from "./components/InteractPrompt";
-import Typesetting from "./components/minigames/Typesetting";
-import PressGame from "./components/minigames/PressGame";
+import ActivityHost from "./components/minigames/ActivityHost";
+import QuizGame from "./components/minigames/QuizGame";
+import type { ActivityResult, QuizResult } from "./game/activities";
 import { Interactable, StationId } from "./game/world";
-import { TYPESET } from "./content/press";
-import { ChapterComplete, ChapterSelect, PauseMenu, TitleScreen } from "./components/screens";
+import { ChapterComplete, ChapterSelect, JournalScreen, PauseMenu, ScreenFrame, TitleScreen } from "./components/screens";
+import { GlossaryHost, GlossaryList } from "./components/Glossary";
 import { AppContext, AppContextValue } from "./AppContext";
 import { BlockType, InventorySlot } from "./types";
 import { ITEM_REGISTRY } from "./utils/items";
@@ -49,7 +50,12 @@ import {
   saveProfiles,
 } from "./save/profiles";
 
-type Screen = "title" | "chapters" | "game";
+type Screen = "title" | "chapters" | "game" | "journal";
+
+const journalCheckLabel = (lang: Lang) => UI.journalCheck[lang];
+
+// Automated browser checks can skip activities with ?debug=1.
+const DEBUG = new URLSearchParams(window.location.search).has("debug");
 
 function lockPointer() {
   const canvas = document.getElementById("canvas-mount") as HTMLCanvasElement | null;
@@ -208,9 +214,22 @@ export default function App() {
   const [station, setStation] = useState<StationId | null>(null);
   const [adHocLine, setAdHocLine] = useState<DialogueLine | null>(null);
   const [typesetLines, setTypesetLines] = useState<string[] | null>(null);
+  const [journalDismissed, setJournalDismissed] = useState(false);
+  const [glossaryOpen, setGlossaryOpen] = useState(false);
+
+  const activity = station ? chapterInfo?.chapter?.activities?.[station] ?? null : null;
+  const journalConfig = chapterInfo?.chapter?.journal?.[settings.band]?.[lang] ?? null;
+  const journalDue = screen === "game" && !quest.done && !dialogueActive && step?.objective?.type === "journal";
+  const journalOpen = journalDue && !journalDismissed && journalConfig !== null;
 
   const blockingModal =
-    dialogueActive || isInventoryOpen || showComplete || teacherOpen || station !== null || adHocLine !== null;
+    dialogueActive ||
+    isInventoryOpen ||
+    showComplete ||
+    teacherOpen ||
+    station !== null ||
+    adHocLine !== null ||
+    journalOpen;
   const showPause =
     screen === "game" && !blockingModal && (paused || (inputMode === "mouse" && !isLocked));
   const inputEnabled =
@@ -300,11 +319,26 @@ export default function App() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  const finishStation = (id: StationId, lines?: string[]) => {
-    if (lines) setTypesetLines(lines);
+  const finishStation = (id: StationId, result: ActivityResult) => {
+    if (result.lines) setTypesetLines(result.lines);
     setStation(null);
     applyAndResume({ type: "station_done", station: id });
   };
+
+  const finishJournal = (result: QuizResult) => {
+    if (activeProfileId) {
+      updateProfile(activeProfileId, (p) => ({
+        ...p,
+        journal: { ...(p.journal ?? {}), [chapterId]: { ...result, date: Date.now() } },
+      }));
+    }
+    applyAndResume({ type: "journal_done" });
+  };
+
+  // A chapter without a journal check for this band skips straight past it.
+  useEffect(() => {
+    if (journalDue && journalConfig === null) setQuest((q) => applyEvent(steps, q, { type: "journal_done" }));
+  }, [journalDue, journalConfig, steps]);
 
   const closeStation = () => {
     setStation(null);
@@ -335,6 +369,7 @@ export default function App() {
     setAdHocLine(null);
     setFocus(null);
     setTypesetLines(null);
+    setJournalDismissed(false);
     setScreen("game");
   };
 
@@ -418,15 +453,51 @@ export default function App() {
 
             {focus && inputEnabled && <InteractPrompt target={focus} onUse={handleUse} />}
 
-            {station === "typecase" && (
-              <Typesetting onComplete={(lines) => finishStation("typecase", lines)} onClose={closeStation} />
-            )}
-            {station === "press" && (
-              <PressGame
-                lines={typesetLines ?? TYPESET[settings.band][lang].lines}
-                onComplete={() => finishStation("press")}
+            {station && activity && (
+              <ActivityHost
+                key={station}
+                activity={activity}
+                typesetLines={typesetLines}
+                onComplete={(result) => finishStation(station, result)}
                 onClose={closeStation}
               />
+            )}
+
+            {DEBUG && (station || journalOpen) && (
+              <button
+                type="button"
+                data-testid="debug-skip"
+                onClick={() =>
+                  station ? finishStation(station, {}) : finishJournal({ correct: 0, scored: 0, responses: [] })
+                }
+                className="absolute bottom-2 left-2 z-[80] rounded bg-fuchsia-700 px-2 py-1 text-xs text-white"
+              >
+                debug: skip
+              </button>
+            )}
+
+            {journalOpen && journalConfig && (
+              <QuizGame
+                title={journalCheckLabel(lang)}
+                icon="📖"
+                cfg={journalConfig}
+                onComplete={finishJournal}
+                onClose={() => {
+                  setJournalDismissed(true);
+                  resumeFromClick();
+                }}
+              />
+            )}
+            {journalDue && journalDismissed && inputEnabled && (
+              <div className="pointer-events-none absolute inset-x-0 bottom-32 z-30 flex justify-center px-4">
+                <button
+                  type="button"
+                  onClick={() => setJournalDismissed(false)}
+                  className="pointer-events-auto flex min-h-16 items-center gap-3 rounded-2xl border-2 border-amber-300 bg-amber-500 px-6 text-xl font-bold text-stone-950 shadow-2xl active:scale-95"
+                >
+                  📖 {journalCheckLabel(lang)}
+                </button>
+              </div>
             )}
 
             {adHocLine && !currentLine && (
@@ -482,7 +553,24 @@ export default function App() {
                   resumeFromClick();
                 }}
                 onChapters={leaveGame}
+                onGlossary={() => setGlossaryOpen(true)}
               />
+            )}
+
+            {glossaryOpen && (
+              <ScreenFrame>
+                <div className="flex w-full items-center justify-between">
+                  <h2 className="text-2xl font-bold text-amber-100">🔤 {UI.glossary[lang]}</h2>
+                  <button
+                    type="button"
+                    onClick={() => setGlossaryOpen(false)}
+                    className="min-h-11 rounded-xl border border-stone-700 bg-stone-900 px-4 text-stone-200"
+                  >
+                    {UI.close[lang]}
+                  </button>
+                </div>
+                <GlossaryList />
+              </ScreenFrame>
             )}
           </>
         ) : screen === "chapters" && profile ? (
@@ -495,7 +583,10 @@ export default function App() {
             onPlay={startChapter}
             onSwitchProfile={() => selectProfile(null)}
             onOpenTeacher={() => setTeacherOpen(true)}
+            onOpenJournal={() => setScreen("journal")}
           />
+        ) : screen === "journal" && profile ? (
+          <JournalScreen profile={profile} onBack={() => setScreen("chapters")} />
         ) : (
           <TitleScreen
             profiles={profiles}
@@ -510,6 +601,8 @@ export default function App() {
             onOpenTeacher={() => setTeacherOpen(true)}
           />
         )}
+
+        <GlossaryHost />
 
         {teacherOpen && (
           <TeacherPanel

@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { NpcDef } from "../game/world";
+import { DecorKind, NpcDef } from "../game/world";
 
 const box = (w: number, h: number, d: number, color: string) =>
   new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshLambertMaterial({ color }));
@@ -98,7 +98,7 @@ export function createNameTag(text: string): THREE.Sprite {
  * Decorative props that sit on station blocks so they read as what they are.
  * The group origin is the bottom-center of the block.
  */
-export function createDecor(kind: "press" | "typecase" | "paper" | "ink"): THREE.Group {
+export function createDecor(kind: DecorKind): THREE.Group {
   const g = new THREE.Group();
   const wood = "#5b3a1e";
   const dark = "#3a2412";
@@ -150,6 +150,78 @@ export function createDecor(kind: "press" | "typecase" | "paper" | "ink"): THREE
     const sheet = box(0.8, 0.02, 0.6, "#fffaf0");
     sheet.position.y = 1.02;
     g.add(sheet);
+  } else if (kind === "desk") {
+    // Slanted writing surface with an open book and a quill pen.
+    const top = box(0.9, 0.05, 0.7, wood);
+    top.position.y = 1.12;
+    top.rotation.x = -0.3;
+    g.add(top);
+    for (const side of [-1, 1]) {
+      const page = box(0.32, 0.02, 0.42, "#f5ecd7");
+      page.position.set(side * 0.17, 1.17, 0.02);
+      page.rotation.x = -0.3;
+      g.add(page);
+    }
+    const quill = box(0.02, 0.02, 0.4, "#f8fafc");
+    quill.position.set(0.32, 1.3, 0.1);
+    quill.rotation.set(0.6, 0.4, 0);
+    g.add(quill);
+  } else if (kind === "kiln") {
+    // Brick dome with a glowing opening.
+    const dome = box(0.8, 0.6, 0.8, "#7c2d12");
+    dome.position.y = 1.3;
+    g.add(dome);
+    const cap = box(0.5, 0.25, 0.5, "#7c2d12");
+    cap.position.y = 1.72;
+    g.add(cap);
+    const glow = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.26, 0.02), new THREE.MeshBasicMaterial({ color: "#fb923c" }));
+    glow.position.set(0, 1.22, 0.41);
+    g.add(glow);
+  } else if (kind === "furnace") {
+    const chimney = box(0.4, 1.2, 0.4, "#292524");
+    chimney.position.set(0, 1.6, -0.2);
+    g.add(chimney);
+    const pot = box(0.5, 0.2, 0.5, "#78716c");
+    pot.position.y = 1.1;
+    g.add(pot);
+    const metal = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.04, 0.4), new THREE.MeshBasicMaterial({ color: "#fdba74" }));
+    metal.position.y = 1.21;
+    g.add(metal);
+  } else if (kind === "vat") {
+    const water = new THREE.Mesh(
+      new THREE.BoxGeometry(0.9, 0.02, 0.9),
+      new THREE.MeshLambertMaterial({ color: "#cfe3ea", transparent: true, opacity: 0.85 })
+    );
+    water.position.y = 1.0;
+    g.add(water);
+    const mould = box(0.5, 0.04, 0.35, wood);
+    mould.position.set(0, 1.08, 0.2);
+    g.add(mould);
+  } else if (kind === "counter") {
+    // Account book, coins and a small balance.
+    const book = box(0.4, 0.06, 0.3, "#7f1d1d");
+    book.position.set(-0.2, 1.03, 0);
+    g.add(book);
+    for (let i = 0; i < 4; i++) {
+      const coin = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.015, 12), new THREE.MeshLambertMaterial({ color: "#eab308" }));
+      coin.position.set(0.2 + (i % 2) * 0.12, 1.01 + Math.floor(i / 2) * 0.02, 0.05 * (i % 2));
+      g.add(coin);
+    }
+  } else if (kind === "maptable") {
+    const map = box(0.95, 0.02, 0.8, "#e9d8a6");
+    map.position.y = 1.01;
+    g.add(map);
+    for (const [x, z] of [[-0.2, -0.1], [0.1, 0.15], [0.3, -0.2], [-0.05, 0.25]]) {
+      const pin = box(0.04, 0.12, 0.04, "#b91c1c");
+      pin.position.set(x, 1.08, z);
+      g.add(pin);
+    }
+  } else if (kind === "claybench") {
+    for (let i = 0; i < 6; i++) {
+      const block = box(0.12, 0.12, 0.12, "#c2410c");
+      block.position.set(-0.3 + (i % 3) * 0.3, 1.06, -0.15 + Math.floor(i / 3) * 0.3);
+      g.add(block);
+    }
   } else if (kind === "ink") {
     for (const side of [-1, 1]) {
       const ball = new THREE.Mesh(new THREE.SphereGeometry(0.14, 10, 8), new THREE.MeshLambertMaterial({ color: "#6b4a2b" }));

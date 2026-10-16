@@ -24,6 +24,16 @@ export enum BlockType {
   PRESS = 21,
   PAPER = 22,
   INK = 23,
+  // Chapter scenery and stations (Phase 3)
+  STONE_BRICK = 24,
+  LACQUER = 25,
+  DESK = 26,
+  KILN = 27,
+  FURNACE = 28,
+  VAT = 29,
+  COUNTER = 30,
+  MAP_TABLE = 31,
+  CLAY = 32,
 }
 
 export interface BlockConfig {
@@ -59,12 +69,30 @@ export const BLOCK_CONFIGS: Record<BlockType, BlockConfig> = {
   [BlockType.PRESS]: { name: "Printing Press", color: "#5b3a1e", isSolid: true },
   [BlockType.PAPER]: { name: "Paper Stack", color: "#f5efe0", isSolid: true },
   [BlockType.INK]: { name: "Ink Bench", color: "#1f1a17", isSolid: true },
+  [BlockType.STONE_BRICK]: { name: "Stone Brick", color: "#8b8378", isSolid: true },
+  [BlockType.LACQUER]: { name: "Red Lacquer", color: "#9f1d20", isSolid: true },
+  [BlockType.DESK]: { name: "Writing Desk", color: "#7c4a21", isSolid: true },
+  [BlockType.KILN]: { name: "Kiln", color: "#9a3412", isSolid: true },
+  [BlockType.FURNACE]: { name: "Furnace", color: "#44403c", isSolid: true },
+  [BlockType.VAT]: { name: "Paper Vat", color: "#3f6f8f", isSolid: true },
+  [BlockType.COUNTER]: { name: "Counter", color: "#7a5230", isSolid: true },
+  [BlockType.MAP_TABLE]: { name: "Map Table", color: "#a37b45", isSolid: true },
+  [BlockType.CLAY]: { name: "Clay Bench", color: "#b45f3c", isSolid: true },
 };
 
 /** Blocks that open a workshop activity when used. */
-export const STATION_BLOCKS: Partial<Record<BlockType, "typecase" | "press">> = {
-  [BlockType.TYPE_CASE]: "typecase",
-  [BlockType.PRESS]: "press",
+/** Blocks used as stations; players can't build on top of them. */
+export const STATION_BLOCKS: Partial<Record<BlockType, true>> = {
+  [BlockType.TYPE_CASE]: true,
+  [BlockType.PRESS]: true,
+  [BlockType.INK]: true,
+  [BlockType.DESK]: true,
+  [BlockType.KILN]: true,
+  [BlockType.FURNACE]: true,
+  [BlockType.VAT]: true,
+  [BlockType.COUNTER]: true,
+  [BlockType.MAP_TABLE]: true,
+  [BlockType.CLAY]: true,
 };
 
 export interface ChunkKey {

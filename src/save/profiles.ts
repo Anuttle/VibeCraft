@@ -1,10 +1,16 @@
 import { Lang } from "../i18n/types";
 import { readJson, removeKey, writeJson } from "./storage";
 import { QuestState } from "../game/quest";
+import type { QuizResult } from "../game/activities";
 
 export interface ChapterProgress {
   quest: QuestState;
   completed: boolean;
+}
+
+/** A finished end-of-chapter check, kept in the student's Printer's Journal. */
+export interface JournalEntry extends QuizResult {
+  date: number;
 }
 
 export interface Profile {
@@ -16,6 +22,8 @@ export interface Profile {
   /** Student's own read-aloud choice. Ignored for K-2, where audio is always on. */
   audio?: boolean;
   progress: Record<string, ChapterProgress>;
+  /** Latest journal check per chapter id. */
+  journal?: Record<string, JournalEntry>;
 }
 
 const PROFILES_KEY = "profiles";

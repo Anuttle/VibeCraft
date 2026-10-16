@@ -1,5 +1,6 @@
 import { Band, Line } from "../i18n/types";
 import { StationId, WorldSetup } from "./world";
+import type { ActivityDef, PerBandLang, QuizConfig } from "./activities";
 
 /** Something the game world reports that objectives can react to. */
 export type GameEvent =
@@ -10,7 +11,8 @@ export type GameEvent =
   | { type: "inventory_opened" }
   | { type: "crafted"; itemId: string; count: number }
   | { type: "talked"; npcId: string }
-  | { type: "station_done"; station: StationId };
+  | { type: "station_done"; station: StationId }
+  | { type: "journal_done" };
 
 export type Objective =
   | { type: "walk"; distance: number }
@@ -20,7 +22,9 @@ export type Objective =
   | { type: "open_inventory" }
   | { type: "craft"; itemId: string; count: number }
   | { type: "talk"; npcId: string }
-  | { type: "station"; station: StationId };
+  | { type: "station"; station: StationId }
+  /** End-of-chapter journal check; opens automatically. */
+  | { type: "journal" };
 
 export interface ObjectiveText {
   /** What to do. May use {n} for the target amount. */
@@ -50,6 +54,10 @@ export interface Step {
 export interface Chapter {
   id: string;
   world?: WorldSetup;
+  /** Activity opened at each station, keyed by station id. */
+  activities?: Record<StationId, ActivityDef>;
+  /** End-of-chapter check, saved to the student's journal. */
+  journal?: PerBandLang<QuizConfig>;
   steps: Step[];
 }
 
@@ -84,6 +92,7 @@ export function objectiveTarget(o: Objective): number {
     case "open_inventory":
     case "talk":
     case "station":
+    case "journal":
       return 1;
   }
 }
@@ -98,6 +107,7 @@ function eventProgress(o: Objective, e: GameEvent): number {
   if (o.type === "craft" && e.type === "crafted" && e.itemId === o.itemId) return e.count;
   if (o.type === "talk" && e.type === "talked" && e.npcId === o.npcId) return 1;
   if (o.type === "station" && e.type === "station_done" && e.station === o.station) return 1;
+  if (o.type === "journal" && e.type === "journal_done") return 1;
   return 0;
 }
 

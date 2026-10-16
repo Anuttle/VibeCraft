@@ -2,6 +2,13 @@ import { UiText } from "../i18n/types";
 import { Chapter } from "../game/quest";
 import { TUTORIAL } from "./tutorial";
 import { PRESS_CHAPTER } from "./press";
+import { CLAY_CHAPTER } from "./chapters/clay";
+import { SCRIPTORIUM_CHAPTER } from "./chapters/scriptorium";
+import { METAL_CHAPTER } from "./chapters/metal";
+import { INK_PAPER_CHAPTER } from "./chapters/inkpaper";
+import { INDULGENCES_CHAPTER } from "./chapters/indulgences";
+import { BIBLE_CHAPTER } from "./chapters/bible";
+import { SPREAD_CHAPTER } from "./chapters/spread";
 
 export interface ChapterInfo {
   id: string;
@@ -30,7 +37,7 @@ export const CHAPTERS: ChapterInfo[] = [
     title: { en: "The Clay Type", es: "Los tipos de arcilla" },
     anchor: { en: "Bi Sheng, China, c. 1040 · Jikji, Korea, 1377", es: "Bi Sheng, China, c. 1040 · Jikji, Corea, 1377" },
     icon: "🏺",
-    chapter: null,
+    chapter: CLAY_CHAPTER,
   },
   {
     id: "scriptorium",
@@ -38,7 +45,7 @@ export const CHAPTERS: ChapterInfo[] = [
     title: { en: "The Scriptorium", es: "El scriptorium" },
     anchor: { en: "Books copied by hand", es: "Libros copiados a mano" },
     icon: "🪶",
-    chapter: null,
+    chapter: SCRIPTORIUM_CHAPTER,
   },
   {
     id: "metal",
@@ -46,7 +53,7 @@ export const CHAPTERS: ChapterInfo[] = [
     title: { en: "The Metal", es: "El metal" },
     anchor: { en: "Gutenberg's hand mould, Mainz", es: "El molde manual de Gutenberg, Maguncia" },
     icon: "🔥",
-    chapter: null,
+    chapter: METAL_CHAPTER,
   },
   {
     id: "ink-paper",
@@ -54,7 +61,7 @@ export const CHAPTERS: ChapterInfo[] = [
     title: { en: "Ink & Paper", es: "Tinta y papel" },
     anchor: { en: "Oil-based ink and linen-rag paper", es: "Tinta a base de aceite y papel de trapo" },
     icon: "🫙",
-    chapter: null,
+    chapter: INK_PAPER_CHAPTER,
   },
   {
     id: "press",
@@ -70,7 +77,7 @@ export const CHAPTERS: ChapterInfo[] = [
     title: { en: "The Indulgences", es: "Las indulgencias" },
     anchor: { en: "Printing for paying customers, 1454–55", es: "Imprimir para clientes, 1454–55" },
     icon: "📜",
-    chapter: null,
+    chapter: INDULGENCES_CHAPTER,
   },
   {
     id: "bible-debt",
@@ -78,7 +85,7 @@ export const CHAPTERS: ChapterInfo[] = [
     title: { en: "The Bible & the Debt", es: "La Biblia y la deuda" },
     anchor: { en: "The 42-line Bible and the 1455 lawsuit", es: "La Biblia de 42 líneas y el juicio de 1455" },
     icon: "⚖️",
-    chapter: null,
+    chapter: BIBLE_CHAPTER,
   },
   {
     id: "scattering",
@@ -86,7 +93,7 @@ export const CHAPTERS: ChapterInfo[] = [
     title: { en: "The Spread of Printing", es: "La expansión de la imprenta" },
     anchor: { en: "From Mainz to more than 250 towns by 1500", es: "De Maguncia a más de 250 ciudades en 1500" },
     icon: "🗺️",
-    chapter: null,
+    chapter: SPREAD_CHAPTER,
   },
 ];
 

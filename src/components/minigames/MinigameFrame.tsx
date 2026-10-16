@@ -8,20 +8,23 @@ interface MinigameFrameProps {
   icon: string;
   /** Current instruction; read aloud automatically when it changes (if read-aloud is on). */
   instruction: string;
+  /** What to read aloud, if different from the instruction (e.g. a question plus its answer choices). */
+  speakText?: string;
   onClose: () => void;
   children: React.ReactNode;
 }
 
-export default function MinigameFrame({ title, icon, instruction, onClose, children }: MinigameFrameProps) {
+export default function MinigameFrame({ title, icon, instruction, speakText, onClose, children }: MinigameFrameProps) {
   const app = useApp();
   const isK2 = app.band === "K-2";
-  const speak = () => narrator.speak({ text: instruction, lang: app.lang, tier: app.tier, rate: isK2 ? 0.85 : 0.95 });
+  const spoken = speakText ?? instruction;
+  const speak = () => narrator.speak({ text: spoken, lang: app.lang, tier: app.tier, rate: isK2 ? 0.85 : 0.95 });
   const speakRef = useRef(speak);
   speakRef.current = speak;
 
   useEffect(() => {
     if (app.audio) speakRef.current();
-  }, [instruction, app.audio]);
+  }, [spoken, app.audio]);
 
   useEffect(() => () => narrator.stop(), []);
 

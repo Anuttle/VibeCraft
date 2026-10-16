@@ -1,11 +1,14 @@
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useApp } from "../../AppContext";
-import { PRESS } from "../../content/press";
+import type { PressConfig } from "../../content/press";
 import { UiKey } from "../../content/ui";
 import { playSoundEffect } from "../../utils/mobs";
 import MinigameFrame from "./MinigameFrame";
 
 interface PressGameProps {
+  cfg: PressConfig;
+  title: string;
+  icon: string;
   /** Text set at the type case; printed on each sheet. */
   lines: string[];
   onComplete: () => void;
@@ -63,9 +66,8 @@ function Sheet({ lines, outcome }: { lines: string[]; outcome: Outcome | null })
   );
 }
 
-export default function PressGame({ lines, onComplete, onClose }: PressGameProps) {
+export default function PressGame({ cfg, title, icon, lines, onComplete, onClose }: PressGameProps) {
   const app = useApp();
-  const cfg = PRESS[app.band];
   const isK2 = app.band === "K-2";
 
   const [phase, setPhase] = useState<Phase>("ink");
@@ -159,7 +161,7 @@ export default function PressGame({ lines, onComplete, onClose }: PressGameProps
           : app.ui(OUTCOME_TEXT[outcome ?? "good"]);
 
   return (
-    <MinigameFrame title={app.ui("pressTitle")} icon="🖨️" instruction={instruction} onClose={onClose}>
+    <MinigameFrame title={title} icon={icon} instruction={instruction} onClose={onClose}>
       <div className="flex flex-wrap items-center justify-between gap-2 text-lg font-bold text-amber-200">
         <span>{app.ui("goodSheets", { n: Math.min(good, cfg.sheets), total: cfg.sheets })}</span>
         {cfg.showTimer && <span className="font-mono">{app.ui("timer", { s: elapsed })}</span>}

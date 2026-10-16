@@ -1,12 +1,15 @@
 import { useMemo, useState } from "react";
 import { Minus, Plus } from "lucide-react";
 import { useApp } from "../../AppContext";
-import { TYPESET } from "../../content/press";
+import type { TypesetConfig } from "../../content/press";
 import { buildTrays, gapCount, justify, plantError } from "../../game/typesetting";
 import { playSoundEffect } from "../../utils/mobs";
 import MinigameFrame from "./MinigameFrame";
 
 interface TypesettingProps {
+  cfg: TypesetConfig;
+  title: string;
+  icon: string;
   onComplete: (lines: string[]) => void;
   onClose: () => void;
 }
@@ -25,9 +28,8 @@ function Sort({ ch, size, mirrored = true }: { ch: string; size: "lg" | "md" | "
   );
 }
 
-export default function Typesetting({ onComplete, onClose }: TypesettingProps) {
+export default function Typesetting({ cfg, title, icon, onComplete, onClose }: TypesettingProps) {
   const app = useApp();
-  const cfg = TYPESET[app.band][app.lang];
   const trays = useMemo(() => buildTrays(cfg), [cfg]);
   const proof = useMemo(() => plantError(cfg.lines[0]), [cfg]);
   const isK2 = app.band === "K-2";
@@ -118,9 +120,11 @@ export default function Typesetting({ onComplete, onClose }: TypesettingProps) {
         ? app.ui("proofHow")
         : phase === "done"
           ? app.ui("tsDone")
-          : isK2
-            ? app.ui("tsHowK2")
-            : app.ui("tsHow");
+          : cfg.instruction
+            ? cfg.instruction
+            : isK2
+              ? app.ui("tsHowK2")
+              : app.ui("tsHow");
 
   const renderTray = (letters: string[], label: string | null) => (
     <div className="rounded-2xl border border-amber-900/60 bg-amber-950/40 p-3">
@@ -148,7 +152,7 @@ export default function Typesetting({ onComplete, onClose }: TypesettingProps) {
   );
 
   return (
-    <MinigameFrame title={app.ui("tsTitle")} icon="🔤" instruction={instruction} onClose={onClose}>
+    <MinigameFrame title={title} icon={icon} instruction={instruction} onClose={onClose}>
       {/* The copy to set, with the current letter marked */}
       <section className="rounded-2xl border border-stone-700 bg-stone-100 p-4 text-stone-900">
         <div className="mb-1 text-xs font-bold uppercase tracking-wider text-stone-500">{app.ui("tsCopy")}</div>

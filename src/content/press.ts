@@ -1,6 +1,7 @@
 import { Band, Lang, Line } from "../i18n/types";
 import { Chapter } from "../game/quest";
 import { GUTENBERG, WORKSHOP } from "../game/world";
+import type { PerBandLang, QuizConfig } from "../game/activities";
 
 // Chapter 4: The Press. Mainz, c. 1450.
 //
@@ -26,6 +27,8 @@ export const PRESS_CHAPTER: Chapter = {
     npcs: [GUTENBERG],
     spawn: { x: 7, z: 11, lookAt: { x: 8, z: 7 } },
   },
+  // Filled in below, after the configs are defined.
+  activities: {},
   steps: [
     {
       id: "intro",
@@ -191,7 +194,278 @@ export const PRESS_CHAPTER: Chapter = {
         },
       ],
     },
+    { id: "journal", objective: { type: "journal" } },
   ],
+  journal: {
+    "K-2": {
+      en: {
+        intro: "Let's remember what you learned at the press.",
+        items: [
+          {
+            kind: "choice",
+            prompt: "Why are the letters on type backwards?",
+            options: [{ text: "So the page reads the right way", emoji: "📄" }, { text: "Because the printer made a mistake", emoji: "❌" }],
+            answer: 0,
+            explain: "Type is a mirror image. When it presses on paper, the letters come out the right way.",
+          },
+          {
+            kind: "choice",
+            prompt: "Can you use the same type again?",
+            options: [{ text: "Yes, for new words", emoji: "♻️" }, { text: "No, it breaks after one page", emoji: "💔" }],
+            answer: 0,
+            explain: "Movable type can be put in a new order and used again and again.",
+          },
+          {
+            kind: "choice",
+            prompt: "Which way makes many copies faster?",
+            options: [{ text: "The printing press", emoji: "🖨️" }, { text: "Writing by hand", emoji: "✍️" }],
+            answer: 0,
+            explain: "The press makes the same page again and again, much faster than writing by hand.",
+          },
+        ],
+      },
+      es: {
+        intro: "Recordemos lo que aprendiste en la prensa.",
+        items: [
+          {
+            kind: "choice",
+            prompt: "¿Por qué las letras de los tipos están al revés?",
+            options: [{ text: "Para que la página se lea bien", emoji: "📄" }, { text: "Porque el impresor se equivocó", emoji: "❌" }],
+            answer: 0,
+            explain: "Los tipos son una imagen de espejo. Al apretarlos contra el papel, las letras salen al derecho.",
+          },
+          {
+            kind: "choice",
+            prompt: "¿Puedes usar los mismos tipos otra vez?",
+            options: [{ text: "Sí, para palabras nuevas", emoji: "♻️" }, { text: "No, se rompen después de una página", emoji: "💔" }],
+            answer: 0,
+            explain: "Los tipos móviles se pueden ordenar de nuevo y usar una y otra vez.",
+          },
+          {
+            kind: "choice",
+            prompt: "¿Qué forma hace muchas copias más rápido?",
+            options: [{ text: "La imprenta", emoji: "🖨️" }, { text: "Escribir a mano", emoji: "✍️" }],
+            answer: 0,
+            explain: "La prensa hace la misma página una y otra vez, mucho más rápido que escribir a mano.",
+          },
+        ],
+      },
+    },
+    "3-5": {
+      en: {
+        intro: "Show what you learned in Gutenberg's workshop.",
+        items: [
+          {
+            kind: "choice",
+            prompt: "Why is every letter on a piece of type a mirror image?",
+            options: [
+              { text: "So the printed page reads correctly" },
+              { text: "So the letters are harder to copy" },
+              { text: "Because metal always melts backwards" },
+            ],
+            answer: 0,
+            explain: "Printing flips the image, like a stamp. A backwards letter on the type prints forwards on the paper.",
+          },
+          {
+            kind: "choice",
+            prompt: "What makes movable type so useful?",
+            options: [
+              { text: "The letters can be rearranged and reused for the next page" },
+              { text: "Each page is carved from one block of wood" },
+              { text: "It can only print one word" },
+            ],
+            answer: 0,
+            explain: "Because each letter is separate, printers can set new words with the same type, again and again.",
+          },
+          {
+            kind: "choice",
+            prompt: "What does the big wooden screw on the press do?",
+            options: [
+              { text: "It presses the paper evenly onto every letter" },
+              { text: "It mixes the ink" },
+              { text: "It cuts the paper to size" },
+            ],
+            answer: 0,
+            explain: "Turning the screw pushes the paper down with the same strong pressure everywhere, so every letter prints clearly.",
+          },
+        ],
+      },
+      es: {
+        intro: "Demuestra lo que aprendiste en el taller de Gutenberg.",
+        items: [
+          {
+            kind: "choice",
+            prompt: "¿Por qué cada letra de un tipo es una imagen de espejo?",
+            options: [
+              { text: "Para que la página impresa se lea correctamente" },
+              { text: "Para que las letras sean más difíciles de copiar" },
+              { text: "Porque el metal siempre se derrite al revés" },
+            ],
+            answer: 0,
+            explain: "Al imprimir, la imagen se voltea, como con un sello. Una letra al revés en el tipo sale al derecho en el papel.",
+          },
+          {
+            kind: "choice",
+            prompt: "¿Por qué son tan útiles los tipos móviles?",
+            options: [
+              { text: "Las letras se pueden reordenar y volver a usar en la siguiente página" },
+              { text: "Cada página se talla en un solo bloque de madera" },
+              { text: "Solo pueden imprimir una palabra" },
+            ],
+            answer: 0,
+            explain: "Como cada letra está separada, los impresores pueden componer palabras nuevas con los mismos tipos, una y otra vez.",
+          },
+          {
+            kind: "choice",
+            prompt: "¿Qué hace el gran tornillo de madera de la prensa?",
+            options: [
+              { text: "Aprieta el papel de manera pareja sobre cada letra" },
+              { text: "Mezcla la tinta" },
+              { text: "Corta el papel a la medida" },
+            ],
+            answer: 0,
+            explain: "Al girar el tornillo, el papel baja con la misma fuerza en todas partes, y así cada letra se imprime con claridad.",
+          },
+        ],
+      },
+    },
+    "6-8": {
+      en: {
+        intro: "Explain how the press works and why it mattered.",
+        items: [
+          {
+            kind: "choice",
+            prompt: "Why did Gutenberg's press use a large screw?",
+            options: [
+              { text: "To press the paper down evenly onto every letter at once" },
+              { text: "To lift the type out of the case" },
+              { text: "To dry the ink faster" },
+            ],
+            answer: 0,
+            explain: "A screw turns a pull on the bar into strong, even pressure, so the whole page prints clearly in one pull.",
+          },
+          {
+            kind: "choice",
+            prompt: "What was the biggest advantage of printing over copying by hand?",
+            options: [
+              { text: "It made many identical copies quickly" },
+              { text: "Every copy could be decorated differently" },
+              { text: "It needed no skilled workers" },
+            ],
+            answer: 0,
+            explain: "Once the type was set, the press could make copy after copy, all the same, far faster than a scribe could write.",
+          },
+          {
+            kind: "order",
+            prompt: "Put the steps of printing a page in order.",
+            items: ["Set the type", "Ink the type", "Lay down the paper", "Pull the bar"],
+            explain: "First set the type, then ink it, then lay damp paper on top, and finally pull the bar to press the page.",
+          },
+          {
+            kind: "write",
+            prompt: "Why do you think identical copies mattered to readers in the 1400s?",
+            starters: ["Identical copies mattered because ...", "Before printing, ...", "With the press, ..."],
+          },
+        ],
+      },
+      es: {
+        intro: "Explica cómo funciona la prensa y por qué fue importante.",
+        items: [
+          {
+            kind: "choice",
+            prompt: "¿Por qué la prensa de Gutenberg usaba un tornillo grande?",
+            options: [
+              { text: "Para apretar el papel de manera pareja sobre todas las letras a la vez" },
+              { text: "Para sacar los tipos de la caja" },
+              { text: "Para secar la tinta más rápido" },
+            ],
+            answer: 0,
+            explain: "El tornillo convierte el jalón de la barra en una presión fuerte y pareja, y así toda la página se imprime bien de una sola vez.",
+          },
+          {
+            kind: "choice",
+            prompt: "¿Cuál fue la mayor ventaja de imprimir en lugar de copiar a mano?",
+            options: [
+              { text: "Hacía muchas copias idénticas rápidamente" },
+              { text: "Cada copia se podía decorar de forma distinta" },
+              { text: "No necesitaba personas con experiencia" },
+            ],
+            answer: 0,
+            explain: "Una vez compuestos los tipos, la prensa podía hacer copia tras copia, todas iguales, mucho más rápido que un copista.",
+          },
+          {
+            kind: "order",
+            prompt: "Ordena los pasos para imprimir una página.",
+            items: ["Componer los tipos", "Poner tinta en los tipos", "Colocar el papel", "Jalar la barra"],
+            explain: "Primero se componen los tipos, luego se les pone tinta, después se coloca el papel húmedo encima y, al final, se jala la barra.",
+          },
+          {
+            kind: "write",
+            prompt: "¿Por qué crees que las copias idénticas eran importantes para los lectores del siglo XV?",
+            starters: ["Las copias idénticas eran importantes porque ...", "Antes de la imprenta, ...", "Con la prensa, ..."],
+          },
+        ],
+      },
+    },
+    "9-12": {
+      en: {
+        intro: "Use evidence to explain why the press mattered.",
+        items: [
+          {
+            kind: "number",
+            prompt: "About how many copies of the Bible did Gutenberg's workshop print?",
+            answer: 180,
+            explain: "Historians estimate about 180 copies, finished by about 1455. A scribe could spend many months copying just one.",
+          },
+          {
+            kind: "evidence",
+            prompt: "Why did printing about 180 Bibles in a few years matter? Choose a claim and the two pieces of evidence that best support it.",
+            claims: [
+              "It mattered because books could be made much faster and more cheaply.",
+              "It mattered because every copy was the same, so texts became more reliable.",
+            ],
+            evidence: [
+              { text: "A single scribe could spend many months copying one Bible by hand.", supports: [0] },
+              { text: "Gutenberg's workshop completed about 180 Bibles within a few years.", supports: [0] },
+              { text: "Movable type could be reset and reused for the next job.", supports: [0] },
+              { text: "Every sheet pulled from the same type was identical.", supports: [1] },
+              { text: "Each handwritten copy risked new copying errors.", supports: [1] },
+            ],
+            pick: 2,
+            reasoning: true,
+          },
+        ],
+      },
+      es: {
+        intro: "Usa evidencia para explicar por qué la prensa fue importante.",
+        items: [
+          {
+            kind: "number",
+            prompt: "¿Cuántas copias de la Biblia imprimió aproximadamente el taller de Gutenberg?",
+            answer: 180,
+            explain: "Los historiadores calculan unas 180 copias, terminadas alrededor de 1455. Un copista podía tardar muchos meses en copiar una sola.",
+          },
+          {
+            kind: "evidence",
+            prompt: "¿Por qué fue importante imprimir unas 180 Biblias en pocos años? Elige una afirmación y las dos pruebas que mejor la apoyan.",
+            claims: [
+              "Fue importante porque los libros se podían hacer mucho más rápido y más barato.",
+              "Fue importante porque todas las copias eran iguales, y así los textos eran más confiables.",
+            ],
+            evidence: [
+              { text: "Un solo copista podía pasar muchos meses copiando una Biblia a mano.", supports: [0] },
+              { text: "El taller de Gutenberg terminó unas 180 Biblias en pocos años.", supports: [0] },
+              { text: "Los tipos móviles se podían volver a componer y usar en el siguiente trabajo.", supports: [0] },
+              { text: "Todas las hojas impresas con los mismos tipos eran idénticas.", supports: [1] },
+              { text: "Cada copia a mano corría el riesgo de tener errores nuevos.", supports: [1] },
+            ],
+            pick: 2,
+            reasoning: true,
+          },
+        ],
+      },
+    },
+  } satisfies PerBandLang<QuizConfig>,
 };
 
 // ---------------------------------------------------------------------------
@@ -201,6 +475,8 @@ export const PRESS_CHAPTER: Chapter = {
 export interface TypesetConfig {
   /** Text to set, one entry per line. */
   lines: string[];
+  /** Instruction shown while setting; defaults to the metal-type wording. */
+  instruction?: string;
   /** Line width in characters; when set, lines must be justified to fill it. */
   width?: number;
   /** Separate upper case (capitals) and lower case trays. */
@@ -258,5 +534,10 @@ export const PRESS: Record<Band, PressConfig> = {
   // Pull windows: 3-5 ≈ 0.6 s, 6-8 ≈ 0.33 s, 9-12 ≈ 0.23 s to let go in the zone.
   "3-5": { sheets: 2, inkPerDab: 15, inkJitter: 0, inkZone: [50, 90], pullRate: 55, pullZone: [55, 90], showTimer: false },
   "6-8": { sheets: 3, inkPerDab: 12, inkJitter: 3, inkZone: [60, 85], pullRate: 60, pullZone: [65, 85], showTimer: false },
-  "9-12": { sheets: 4, inkPerDab: 12, inkJitter: 4, inkZone: [65, 82], pullRate: 70, pullZone: [68, 84], showTimer: true },
+  "9-12": { sheets: 4, inkPerDab: 12, inkJitter: 4, inkZone: [65, 82], pullRate: 66, pullZone: [68, 84], showTimer: true },
+};
+
+PRESS_CHAPTER.activities = {
+  typecase: { kind: "typeset", title: { en: "Type case", es: "Caja de tipos" }, icon: "🔤", config: TYPESET },
+  press: { kind: "press", title: { en: "Printing press", es: "La prensa" }, icon: "🖨️", config: PRESS },
 };

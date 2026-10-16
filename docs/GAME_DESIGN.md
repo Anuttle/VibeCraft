@@ -247,6 +247,51 @@ Gutenberg's dialogue is written for teaching and is not quoted from him. The his
 
 Automated browser checks can teleport the player with `?debug=1` (this exposes `window.__ppTeleport`).
 
+### Phase 3: All chapters, journal and glossary
+
+#### Reusable activities
+
+Each activity is configured per grade band and language (`src/game/activities.ts`, `src/components/minigames/`).
+
+| Activity | Used for |
+|---|---|
+| `typeset` | Chapter 0 (clay sorts), Chapter 4 |
+| `press` | Chapters 4, 5, 6 |
+| `mix` | Chapter 2 (alloy), Chapter 3 (ink) |
+| `sequence` | Chapter 3 (papermaking) |
+| `hold` | Chapter 0 (kiln), Chapter 2 (pouring), Chapter 3 (paper press) |
+| `carve` | Chapter 0 (mirror-image characters) |
+| `copy` | Chapter 1 (copying by hand) |
+| `map` | Chapter 7 (spread of printing) |
+| `quiz` | Ledgers, the court case, effects of printing, and every journal check |
+
+#### Scenes
+
+Each chapter's scene is built from one room template with four station spots (`makeRoom` in `src/game/world.ts`).
+
+#### Journal
+
+- The last step of every story chapter is a journal check, written per band.
+- Answers and scores are saved in the student's profile.
+- Students can read them back under **Journal**, from the chapter screen.
+
+#### Glossary
+
+- Every chapter adds bilingual words (`src/content/glossary.ts` combines them).
+- Bold words in dialogue can be tapped to open their card, which has read-aloud in both languages.
+- The full searchable list is under **Journal → Glossary** and in the pause menu.
+
+#### Content rules and checking
+
+- The rules are in `docs/CONTENT_GUIDE.md`.
+- `npm run validate` checks:
+  - every tier and language is present
+  - Spanish wording is neutral and Latin American
+  - stations match activities
+  - quiz answers are valid
+  - hold reaction windows are long enough
+  - every chapter ends in a journal check
+
 ### Device support
 
 - **Touch mode** is used on any touch-capable device (iPad, touchscreen Chromebooks). Keyboard movement still works, so an iPad with a keyboard case gets both.

@@ -192,6 +192,70 @@ export const UI = {
   printAnother: { en: "Print another page", es: "Imprimir otra página" },
   timer: { en: "Time: {s} s", es: "Tiempo: {s} s" },
   printedIn: { en: "You printed {n} pages in {s} seconds.", es: "Imprimiste {n} páginas en {s} segundos." },
+
+  // Mix
+  checkMix: { en: "Check the mix", es: "Revisar la mezcla" },
+  mixTotal: { en: "Total: {n}%", es: "Total: {n} %" },
+  mixMustTotal: { en: "The parts must add up to 100%.", es: "Las partes deben sumar 100 %." },
+  tapToChoose: { en: "Tap to choose", es: "Toca para elegir" },
+
+  // Sequence and ordering
+  yourOrder: { en: "Your order", es: "Tu orden" },
+  notYet: { en: "Not yet. What comes next?", es: "Todavía no. ¿Qué sigue?" },
+
+  // Hold
+  roundsDone: { en: "Done: {n} / {total}", es: "Listos: {n} / {total}" },
+  again: { en: "Again", es: "Otra vez" },
+
+  // Carve
+  carveWhich: { en: "Which carving will print this?", es: "¿Qué tallado imprimirá esto?" },
+  carvePrints: { en: "On the page", es: "En la página" },
+  carveWrong: {
+    en: "That one would print backwards or upside down.",
+    es: "Ese se imprimiría al revés o de cabeza.",
+  },
+  carveRight: { en: "Yes! The mirror image prints the right way.", es: "¡Sí! La imagen de espejo se imprime al derecho." },
+
+  // Copy
+  copyThis: { en: "Copy this by hand", es: "Copia esto a mano" },
+  yourCopy: { en: "Your copy", es: "Tu copia" },
+
+  // Map
+  citiesReached: { en: "Cities: {n} / {total}", es: "Ciudades: {n} / {total}" },
+  mapWrong: {
+    en: "Not yet. Which of these cities got printing earlier?",
+    es: "Todavía no. ¿Cuál de estas ciudades tuvo imprenta antes?",
+  },
+  mapHint: { en: "Hint: printing spread outward from Mainz.", es: "Pista: la imprenta se extendió desde Maguncia." },
+
+  // Quiz and journal
+  check: { en: "Check", es: "Revisar" },
+  correct: { en: "Correct!", es: "¡Correcto!" },
+  notQuite: { en: "Not quite.", es: "No exactamente." },
+  typeAnswer: { en: "Type your answer", es: "Escribe tu respuesta" },
+  writeMore: { en: "Write a little more (at least 3 words).", es: "Escribe un poco más (al menos 3 palabras)." },
+  starters: { en: "Need help starting?", es: "¿Necesitas ayuda para empezar?" },
+  pickClaim: { en: "1. Choose the claim you think is best supported.", es: "1. Elige la afirmación que crees que tiene mejor apoyo." },
+  pickEvidence: { en: "2. Choose {n} pieces of evidence that support your claim.", es: "2. Elige {n} evidencias que apoyen tu afirmación." },
+  writeReasoning: { en: "3. Explain how your evidence supports your claim.", es: "3. Explica cómo tu evidencia apoya tu afirmación." },
+  evidenceMismatch: {
+    en: "At least one piece of evidence doesn't support your claim. Look again.",
+    es: "Al menos una evidencia no apoya tu afirmación. Revisa otra vez.",
+  },
+  evidenceGood: { en: "Your evidence supports your claim.", es: "Tu evidencia apoya tu afirmación." },
+  quizDone: { en: "Journal entry saved!", es: "¡Entrada del diario guardada!" },
+  done: { en: "Done!", es: "¡Listo!" },
+  score: { en: "You got {n} of {total} right.", es: "Acertaste {n} de {total}." },
+  journalCheck: { en: "Journal check", es: "Revisión del diario" },
+  journal: { en: "Journal", es: "Diario" },
+  journalTitle: { en: "Printer's Journal", es: "Diario del impresor" },
+  journalEmpty: {
+    en: "No entries yet. Finish a chapter to add one.",
+    es: "Todavía no hay entradas. Termina un capítulo para agregar una.",
+  },
+  glossary: { en: "Glossary", es: "Glosario" },
+  search: { en: "Search", es: "Buscar" },
+  noMatches: { en: "No matching words.", es: "No hay palabras que coincidan." },
 } satisfies Record<string, UiText>;
 
 export type UiKey = keyof typeof UI;

@@ -14,7 +14,7 @@ function isUpper(ch: string) {
 }
 
 /** Deterministic shuffle so a class sees the same tray layout. */
-function seededShuffle<T>(items: T[], seedText: string): T[] {
+export function seededShuffle<T>(items: T[], seedText: string): T[] {
   let seed = 0;
   for (const ch of seedText) seed = (seed * 31 + ch.charCodeAt(0)) >>> 0;
   const out = [...items];
