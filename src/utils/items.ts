@@ -1,6 +1,6 @@
 import { BlockType } from "../types";
 
-export type ItemType = "block" | "tool" | "weapon" | "food" | "resource";
+export type ItemType = "block" | "tool" | "resource";
 export type ToolType = "pickaxe" | "axe" | "shovel" | "none";
 
 export interface Item {
@@ -12,9 +12,7 @@ export interface Item {
   emoji: string; // Used as an icon in the inventory UI
   toolType?: ToolType; // For tool items
   miningSpeedMultiplier?: number; // Speed boost when harvesting
-  maxDurability?: number; // Total uses for tools/weapons
-  attackDamage?: number; // Damage dealt to mobs
-  foodRestore?: number; // Hunger restored when consumed
+  maxDurability?: number; // Total uses for tools
   blockType?: BlockType; // If it can be placed as a block
 }
 
@@ -239,76 +237,6 @@ export const ITEM_REGISTRY: Record<string, Item> = {
     miningSpeedMultiplier: 4.0,
     maxDurability: 131,
   },
-
-  // Weapons
-  "wooden_sword": {
-    id: "wooden_sword",
-    name: "Wooden Sword",
-    type: "weapon",
-    maxStack: 1,
-    color: "#b45309",
-    emoji: "🪵🗡️",
-    attackDamage: 4,
-    maxDurability: 60,
-  },
-  "stone_sword": {
-    id: "stone_sword",
-    name: "Stone Sword",
-    type: "weapon",
-    maxStack: 1,
-    color: "#64748b",
-    emoji: "🪨🗡️",
-    attackDamage: 6,
-    maxDurability: 131,
-  },
-  "iron_sword": {
-    id: "iron_sword",
-    name: "Iron Sword",
-    type: "weapon",
-    maxStack: 1,
-    color: "#e2e8f0",
-    emoji: "⚙️🗡️",
-    attackDamage: 8,
-    maxDurability: 250,
-  },
-
-  // Food
-  "cooked_porkchop": {
-    id: "cooked_porkchop",
-    name: "Cooked Porkchop",
-    type: "food",
-    maxStack: 64,
-    color: "#f43f5e",
-    emoji: "🥩",
-    foodRestore: 8,
-  },
-  "apple": {
-    id: "apple",
-    name: "Red Apple",
-    type: "food",
-    maxStack: 64,
-    color: "#ef4444",
-    emoji: "🍎",
-    foodRestore: 4,
-  },
-  "bread": {
-    id: "bread",
-    name: "Fresh Bread",
-    type: "food",
-    maxStack: 64,
-    color: "#f59e0b",
-    emoji: "🍞",
-    foodRestore: 6,
-  },
-  "rotten_flesh": {
-    id: "rotten_flesh",
-    name: "Rotten Flesh",
-    type: "food",
-    maxStack: 64,
-    color: "#15803d",
-    emoji: "🍖",
-    foodRestore: 2,
-  },
 };
 
 export interface BlockDrop {
@@ -521,30 +449,10 @@ export function checkCraftingRecipe(grid: string[]): CraftingResult | null {
     return { itemId: "stone_axe", count: 1 };
   }
 
-  // Wooden Sword (2 Wood Planks + 1 Stick)
-  if (totalItems === 3 && counts["wood_planks"] === 2 && counts["stick"] === 1) {
-    return { itemId: "wooden_sword", count: 1 };
-  }
 
-  // Stone Sword (2 Cobblestone + 1 Stick)
-  if (totalItems === 3 && counts["cobblestone"] === 2 && counts["stick"] === 1) {
-    return { itemId: "stone_sword", count: 1 };
-  }
 
-  // Iron Sword (2 Raw Iron + 1 Stick)
-  if (totalItems === 3 && counts["raw_iron"] === 2 && counts["stick"] === 1) {
-    return { itemId: "iron_sword", count: 1 };
-  }
 
-  // 3 Leaves -> 1 Apple
-  if (totalItems === 3 && counts["leaves"] === 3) {
-    return { itemId: "apple", count: 1 };
-  }
 
-  // 3 Wood Logs -> 2 Bread (survival shortcut)
-  if (totalItems === 3 && counts["wood_log"] === 3) {
-    return { itemId: "bread", count: 2 };
-  }
 
   // 2 Dirt -> 2 Grass Block
   if (totalItems === 2 && counts["dirt"] === 2) {

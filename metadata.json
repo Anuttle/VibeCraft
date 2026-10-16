@@ -1,6 +1,8 @@
 {
-  "name": "Minecraft Clone",
-  "description": "A modular browser-based 3D voxel engine Minecraft clone built with React, TypeScript, and Three.js.",
+  "name": "The Printing Press",
+  "description": "A bilingual (English/Spanish) educational voxel game about the history of the printing press, with grade-band and reading-level settings.",
   "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
 }

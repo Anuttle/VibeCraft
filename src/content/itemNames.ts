@@ -1,0 +1,27 @@
+import { UiText } from "../i18n/types";
+
+export const ITEM_NAMES: Record<string, UiText> = {
+  grass_block: { en: "Grass Block", es: "Bloque de pasto" },
+  dirt: { en: "Dirt", es: "Tierra" },
+  cobblestone: { en: "Cobblestone", es: "Piedra" },
+  wood_log: { en: "Wood Log", es: "Tronco" },
+  leaves: { en: "Leaves", es: "Hojas" },
+  coal_ore: { en: "Coal Ore", es: "Mineral de carbón" },
+  iron_ore: { en: "Iron Ore", es: "Mineral de hierro" },
+  torch: { en: "Torch", es: "Antorcha" },
+  crafting_table: { en: "Crafting Table", es: "Mesa de trabajo" },
+  sand: { en: "Sand", es: "Arena" },
+  sandstone: { en: "Sandstone", es: "Arenisca" },
+  cactus: { en: "Cactus", es: "Cactus" },
+  snow: { en: "Snow", es: "Nieve" },
+  ice: { en: "Ice", es: "Hielo" },
+  coal: { en: "Coal", es: "Carbón" },
+  raw_iron: { en: "Raw Iron", es: "Hierro en bruto" },
+  stick: { en: "Stick", es: "Palo" },
+  wood_planks: { en: "Wood Planks", es: "Tablones de madera" },
+  wooden_pickaxe: { en: "Wooden Pickaxe", es: "Pico de madera" },
+  stone_pickaxe: { en: "Stone Pickaxe", es: "Pico de piedra" },
+  iron_pickaxe: { en: "Iron Pickaxe", es: "Pico de hierro" },
+  wooden_axe: { en: "Wooden Axe", es: "Hacha de madera" },
+  stone_axe: { en: "Stone Axe", es: "Hacha de piedra" },
+};

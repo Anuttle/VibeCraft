@@ -202,3 +202,46 @@ This means audio works from day one through the fallback, and quality improves a
 - Replace the hard-coded crafting chain in `utils/items.ts` with recipe data.
 - Remove `MobType.ZOMBIE`, `SKELETON` and the combat paths.
 - Remove health and hunger from `App.tsx` and `HUD.tsx`.
+
+---
+
+## 7. Implementation status
+
+### Phase 1: Foundation (done)
+
+| Area | Where |
+|---|---|
+| Survival removed: combat, zombies, health, hunger, food, death screen, night | `GameCanvas.tsx`, `items.ts`, `mobs.ts` |
+| Three dials (band, reading tier, language) plus audio | `settings/settings.ts`, `AppContext.tsx` |
+| Tiered bilingual content, with fallback to the nearest written tier | `i18n/types.ts`, `content/` |
+| Teacher panel (PIN), chapter toggles, group links | `components/TeacherPanel.tsx` |
+| Student profiles and saved progress (`localStorage`) | `save/` |
+| Read-aloud with word highlighting; Latin American voices preferred | `audio/narrator.ts` |
+| Dialogue box, goal tracker, and a quest engine with band-specific steps | `game/quest.ts`, `components/` |
+| Touch controls: joystick, drag to look, buttons | `components/TouchControls.tsx`, `game/input.ts` |
+| Tutorial chapter, playable in every band × tier × language | `content/tutorial.ts` |
+
+### Device support
+
+- **Touch mode** is used on any touch-capable device (iPad, touchscreen Chromebooks). Keyboard movement still works, so an iPad with a keyboard case gets both.
+- **Mouse mode** is used on desktops (pointer lock).
+- Either mode can be forced with `?controls=touch` or `?controls=mouse`.
+
+### Audio files
+
+To add recorded or generated audio:
+1. Place each file at `public/audio/<lang>/<tier>/<contentId>.mp3`.
+2. List it in `public/audio/manifest.json` as `"<lang>/<tier>/<contentId>"`.
+
+Unlisted lines fall back to the device's speech voice.
+
+### Group link parameters
+
+| Parameter | Values |
+|---|---|
+| `band` | `K-2`, `3-5`, `6-8`, `9-12` |
+| `tier` | `T1`–`T4` |
+| `lang` | `en`, `es` |
+| `audio` | `on`, `off` |
+| `switch` | `on`, `off` (whether students may change language) |
+| `chapters` | comma-separated numbers, e.g. `2,3,4` |
