@@ -274,9 +274,10 @@ export class TerrainGenerator {
   }
 
   /**
-   * Procedural Oak Tree (Wood Trunk + Broad Leaf Canopy)
+   * Procedural Oak Tree (Wood Trunk + Broad Leaf Canopy).
+   * Public so authored areas can guarantee trees (e.g. near spawn).
    */
-  private generateOakTree(blocks: Uint8Array, tx: number, groundY: number, tz: number) {
+  public generateOakTree(blocks: Uint8Array, tx: number, groundY: number, tz: number) {
     const treeHeight = 5;
 
     // Trunk

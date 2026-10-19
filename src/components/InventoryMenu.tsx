@@ -2,6 +2,11 @@ import React, { useState, useEffect } from "react";
 import { InventorySlot } from "../types";
 import { ITEM_REGISTRY, Item, checkCraftingRecipe } from "../utils/items";
 import { X, Trash2, ArrowRight } from "lucide-react";
+import { useApp } from "../AppContext";
+
+// Last pointer position, so a held item appears under the finger right away on
+// touch screens (there is no hover movement before the first tap).
+const lastPointer = { x: 0, y: 0 };
 
 interface InventoryMenuProps {
   isOpen: boolean;
@@ -12,6 +17,9 @@ interface InventoryMenuProps {
   onHotbarChange: (newHotbar: InventorySlot[]) => void;
   onDropItem: (itemId: string, count: number) => void;
   isCraftingTableOpen?: boolean;
+  onCrafted?: (itemId: string, count: number) => void;
+  /** Shown at the top of the panel, e.g. the current goal. */
+  banner?: React.ReactNode;
 }
 
 export default function InventoryMenu({
@@ -23,7 +31,10 @@ export default function InventoryMenu({
   onHotbarChange,
   onDropItem,
   isCraftingTableOpen = false,
+  onCrafted,
+  banner,
 }: InventoryMenuProps) {
+  const app = useApp();
   // Cursor item holds whatever slot the user has "lifted"
   const [cursorItem, setCursorItem] = useState<InventorySlot | null>(null);
   const [hoveredItem, setHoveredItem] = useState<Item | null>(null);
@@ -47,6 +58,16 @@ export default function InventoryMenu({
   const activeGrid = is3x3Mode ? craftingGrid : craftingGrid.slice(0, 4);
   const craftResult = checkCraftingRecipe(activeGrid.map((s) => s.itemId));
   const craftResultDef = craftResult ? ITEM_REGISTRY[craftResult.itemId] : null;
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const track = (e: PointerEvent) => {
+      lastPointer.x = e.clientX;
+      lastPointer.y = e.clientY;
+    };
+    window.addEventListener("pointerdown", track, true);
+    return () => window.removeEventListener("pointerdown", track, true);
+  }, [isOpen]);
 
   // Prevent game keys from registering when typing or navigating inventory
   useEffect(() => {
@@ -101,11 +122,13 @@ export default function InventoryMenu({
         const keepCount = currentSlot.count - takeCount;
 
         setCursorItem({ ...currentSlot, count: takeCount });
+        setHoveredItem(itemDef);
         list[index] = { ...currentSlot, count: keepCount };
         updateList(list);
       } else {
         // Take entire stack (Left Click)
         setCursorItem({ ...currentSlot });
+        setHoveredItem(itemDef);
         list[index] = { itemId: "", count: 0 };
         updateList(list);
       }
@@ -268,6 +291,7 @@ export default function InventoryMenu({
     const newCount = (cursorItem?.count || 0) + craftResult.count;
     const dur = craftResultDef.type === "tool" ? craftResultDef.maxDurability : undefined;
     setCursorItem({ itemId: craftResult.itemId, count: newCount, durability: dur });
+    onCrafted?.(craftResult.itemId, craftResult.count);
 
     // Deduct 1 unit from each ingredient slot in crafting grid
     setCraftingGrid((prev) =>
@@ -296,9 +320,9 @@ export default function InventoryMenu({
     return (
       <div
         key={`${type}-${index}`}
-        onMouseDown={(e) => handleSlotClick(e, type, index)}
-        onMouseEnter={() => item && setHoveredItem(item)}
-        onMouseLeave={() => setHoveredItem(null)}
+        onPointerDown={(e) => handleSlotClick(e, type, index)}
+        onPointerEnter={() => item && setHoveredItem(item)}
+        
         onContextMenu={(e) => e.preventDefault()}
         className={`relative w-12 h-12 rounded-lg bg-slate-950/80 border flex items-center justify-center cursor-pointer select-none transition-all duration-150 group ${
           item
@@ -348,32 +372,32 @@ export default function InventoryMenu({
       {/* Inventory Panel Container */}
       <div 
         onContextMenu={(e) => e.preventDefault()}
-        className="relative bg-slate-900/95 border border-slate-800 rounded-2xl w-full max-w-lg p-6 shadow-2xl flex flex-col gap-5 text-slate-100 font-sans"
+        className="relative bg-stone-900/95 border border-stone-700 rounded-2xl w-full max-w-lg max-h-[calc(100dvh-2rem)] overflow-y-auto p-5 shadow-2xl flex flex-col gap-4 text-slate-100 font-sans"
       >
         {/* Close Button & Title */}
         <div className="flex justify-between items-center pb-3 border-b border-slate-800">
           <div className="flex flex-col">
             <h2 className="text-lg font-extrabold tracking-wide text-slate-100 flex items-center gap-2">
-              {is3x3Mode ? "🪵🧱 Crafting Table (3x3 Grid)" : "🎒 Player Inventory & 2x2 Crafting"}
+              {is3x3Mode ? `🪵 ${app.ui("craftingTableTitle")}` : `🎒 ${app.ui("bagTitle")}`}
             </h2>
-            <p className="text-xs text-slate-500 font-mono">
-              Key [E] • Drag, Split, Stacking & {is3x3Mode ? "3x3 Crafting Table" : "2x2 Quick Crafting"}
-            </p>
           </div>
           <button
             onClick={handleClose}
-            className="p-1.5 rounded-lg bg-slate-800/50 hover:bg-slate-800 border border-slate-700/50 hover:border-slate-600 text-slate-400 hover:text-slate-200 transition-all cursor-pointer"
+            aria-label={app.ui("close")}
+            className="h-11 w-11 flex items-center justify-center p-1.5 rounded-lg bg-slate-800/50 hover:bg-slate-800 border border-slate-700/50 hover:border-slate-600 text-slate-400 hover:text-slate-200 transition-all cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
+
+        {banner}
 
         {/* Crafting Grid Section */}
         <div className="bg-slate-950/60 border border-slate-800/80 rounded-xl p-3 flex items-center justify-between">
           <div className="flex flex-col gap-1.5">
             <div className="flex items-center justify-between gap-2">
               <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider font-mono">
-                {is3x3Mode ? "3x3 Grid" : "2x2 Grid"}
+                {app.ui("craft")}
               </span>
               <div className="flex items-center gap-1 bg-slate-900 border border-slate-800 rounded-lg p-0.5 text-[9px] font-mono">
                 <button
@@ -409,9 +433,9 @@ export default function InventoryMenu({
                 return (
                   <div
                     key={`craft-${idx}`}
-                    onMouseDown={(e) => handleCraftingSlotClick(e, idx)}
-                    onMouseEnter={() => item && setHoveredItem(item)}
-                    onMouseLeave={() => setHoveredItem(null)}
+                    onPointerDown={(e) => handleCraftingSlotClick(e, idx)}
+                    onPointerEnter={() => item && setHoveredItem(item)}
+                    
                     className={`w-11 h-11 rounded-lg bg-slate-900/90 border flex items-center justify-center cursor-pointer select-none transition-all ${
                       item
                         ? "border-slate-700 hover:border-slate-500 bg-slate-850 shadow"
@@ -437,11 +461,11 @@ export default function InventoryMenu({
           <div className="flex items-center gap-3">
             <ArrowRight className="w-5 h-5 text-slate-600" />
             <div className="flex flex-col items-center gap-1">
-              <span className="text-[9px] uppercase font-bold text-emerald-400 tracking-wider font-mono">Result</span>
+              <span className="text-[9px] uppercase font-bold text-emerald-400 tracking-wider font-mono">{app.ui("result")}</span>
               <div
-                onMouseDown={handleCraftingResultClick}
-                onMouseEnter={() => craftResultDef && setHoveredItem(craftResultDef)}
-                onMouseLeave={() => setHoveredItem(null)}
+                onPointerDown={handleCraftingResultClick}
+                onPointerEnter={() => craftResultDef && setHoveredItem(craftResultDef)}
+                
                 className={`w-14 h-14 rounded-xl border flex items-center justify-center select-none transition-all cursor-pointer ${
                   craftResultDef
                     ? "bg-emerald-950/40 border-emerald-500/50 shadow-lg shadow-emerald-500/10 scale-105"
@@ -461,19 +485,19 @@ export default function InventoryMenu({
           </div>
 
           <div className="text-[10px] text-slate-500 font-mono flex flex-col gap-0.5 max-w-[160px] border-l border-slate-800/60 pl-3">
-            <span className="text-slate-300 font-bold">Crafting Recipes:</span>
-            <span>• 4 Planks → Crafting Table</span>
-            <span>• 1 Log → 4 Oak Planks</span>
-            <span>• 2 Planks → 4 Sticks</span>
-            <span>• 3 Planks + 2 Sticks → Pickaxe</span>
-            <span>• 3 Stone + 2 Sticks → Stone Pick</span>
+            <span className="text-slate-300 font-bold">{app.ui("recipes")}</span>
+            <span>• {app.ui("recipePlanks")}</span>
+            <span>• {app.ui("recipeSticks")}</span>
+            <span>• {app.ui("recipeTable")}</span>
+            <span>• {app.ui("recipePick")}</span>
+            <span>• {app.ui("recipeTorch")}</span>
           </div>
         </div>
 
         {/* Content Section: 27 Slots Grid */}
         <div className="flex flex-col gap-3">
           <div>
-            <h3 className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-1.5 font-mono">Main Inventory</h3>
+            <h3 className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-1.5 font-mono">{app.ui("bagSection")}</h3>
             <div className="grid grid-cols-9 gap-1.5 p-2.5 bg-slate-950/40 border border-slate-800/50 rounded-xl">
               {Array.from({ length: 27 }).map((_, i) => renderSlot("inventory", i))}
             </div>
@@ -481,7 +505,7 @@ export default function InventoryMenu({
 
           {/* Hotbar Section */}
           <div>
-            <h3 className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-1.5 font-mono">Quick Access Hotbar</h3>
+            <h3 className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-1.5 font-mono">{app.ui("hotbarSection")}</h3>
             <div className="grid grid-cols-9 gap-1.5 p-2.5 bg-slate-950/60 border border-emerald-500/15 rounded-xl shadow-lg shadow-emerald-500/5">
               {Array.from({ length: 9 }).map((_, i) => renderSlot("hotbar", i))}
             </div>
@@ -498,14 +522,11 @@ export default function InventoryMenu({
                   {hoveredItem.emoji}
                 </div>
                 <div>
-                  <h4 className="font-bold text-slate-200">{hoveredItem.name}</h4>
-                  <p className="text-[10px] text-slate-500 font-mono uppercase tracking-wide">
-                    {hoveredItem.type} {hoveredItem.maxStack ? `• Max Stack: ${hoveredItem.maxStack}` : ""}
-                  </p>
+                  <h4 className="font-bold text-slate-200">{app.itemName(hoveredItem.id, hoveredItem.name)}</h4>
                 </div>
               </>
             ) : (
-              <span className="text-slate-500 italic">Hover an item slot to view details</span>
+              <span className="text-slate-500 italic">{app.ui("tapItem")}</span>
             )}
           </div>
 
@@ -520,7 +541,7 @@ export default function InventoryMenu({
           >
             <Trash2 className="w-4 h-4 shrink-0" />
             <span className="font-bold font-mono text-[10px] uppercase tracking-wide">
-              {cursorItem ? `Throw ${cursorItem.count}x` : "Drop Slot"}
+              {cursorItem ? app.ui("drop", { n: cursorItem.count }) : app.ui("dropSlot")}
             </span>
           </button>
         </div>
@@ -536,14 +557,18 @@ export default function InventoryMenu({
 
 // Utility component to make the floating item perfectly follow mouse pointer
 function CursorTracker({ item, count }: { item: Item; count: number }) {
-  const [coords, setCoords] = useState({ x: 0, y: 0 });
+  const [coords, setCoords] = useState({ x: lastPointer.x, y: lastPointer.y });
 
   useEffect(() => {
-    const updateMouse = (e: MouseEvent) => {
+    const updatePointer = (e: PointerEvent) => {
       setCoords({ x: e.clientX, y: e.clientY });
     };
-    window.addEventListener("mousemove", updateMouse);
-    return () => window.removeEventListener("mousemove", updateMouse);
+    window.addEventListener("pointermove", updatePointer);
+    window.addEventListener("pointerdown", updatePointer);
+    return () => {
+      window.removeEventListener("pointermove", updatePointer);
+      window.removeEventListener("pointerdown", updatePointer);
+    };
   }, []);
 
   if (!item) return null;

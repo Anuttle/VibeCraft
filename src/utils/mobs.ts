@@ -2,8 +2,6 @@ import * as THREE from "three";
 
 export enum MobType {
   PIG = "pig",
-  ZOMBIE = "zombie",
-  SKELETON = "skeleton",
 }
 
 export interface MobEntity {
@@ -12,25 +10,17 @@ export interface MobEntity {
   position: THREE.Vector3;
   velocity: THREE.Vector3;
   rotationY: number;
-  health: number;
-  maxHealth: number;
   group: THREE.Group;
   head: THREE.Object3D;
   leftLegFront?: THREE.Object3D;
   rightLegFront?: THREE.Object3D;
   leftLegBack?: THREE.Object3D;
   rightLegBack?: THREE.Object3D;
-  leftArm?: THREE.Object3D;
-  rightArm?: THREE.Object3D;
-  
-  // AI & State
+
+  // Wandering state
   walkTimer: number;
   targetDirection: THREE.Vector3;
-  isHostile: boolean;
-  attackCooldown: number;
-  hitTimer: number;
   isGrounded: boolean;
-  dropItems: { itemId: string; count: number }[];
 }
 
 // 1. Procedural Pig Mesh (Passive Mob)
@@ -101,79 +91,6 @@ export function createPigMesh(): {
   return { group, head: headGroup, leftLegFront, rightLegFront, leftLegBack, rightLegBack };
 }
 
-// 2. Procedural Zombie Mesh (Hostile Mob)
-export function createZombieMesh(): {
-  group: THREE.Group;
-  head: THREE.Object3D;
-  leftLegFront: THREE.Object3D;
-  rightLegFront: THREE.Object3D;
-  leftArm: THREE.Object3D;
-  rightArm: THREE.Object3D;
-} {
-  const group = new THREE.Group();
-  const skinMat = new THREE.MeshStandardMaterial({ color: 0x15803d, roughness: 0.8 }); // Dark Green
-  const shirtMat = new THREE.MeshStandardMaterial({ color: 0x0284c7, roughness: 0.7 }); // Cyan/Blue shirt
-  const pantsMat = new THREE.MeshStandardMaterial({ color: 0x1e1b4b, roughness: 0.8 }); // Dark blue pants
-  const eyeMat = new THREE.MeshBasicMaterial({ color: 0xef4444 }); // Glowing red eyes
-
-  // Body / Torso
-  const torsoGeom = new THREE.BoxGeometry(0.7, 0.9, 0.4);
-  const torsoMesh = new THREE.Mesh(torsoGeom, shirtMat);
-  torsoMesh.position.set(0, 1.15, 0);
-  torsoMesh.castShadow = true;
-  group.add(torsoMesh);
-
-  // Head
-  const headGroup = new THREE.Group();
-  headGroup.position.set(0, 1.85, 0);
-  const headGeom = new THREE.BoxGeometry(0.6, 0.6, 0.6);
-  const headMesh = new THREE.Mesh(headGeom, skinMat);
-  headMesh.castShadow = true;
-  headGroup.add(headMesh);
-
-  // Red Eyes
-  const eyeGeom = new THREE.BoxGeometry(0.12, 0.08, 0.02);
-  const leftEye = new THREE.Mesh(eyeGeom, eyeMat);
-  leftEye.position.set(-0.16, 0.05, 0.31);
-  const rightEye = new THREE.Mesh(eyeGeom, eyeMat);
-  rightEye.position.set(0.16, 0.05, 0.31);
-  headGroup.add(leftEye, rightEye);
-  group.add(headGroup);
-
-  // Legs
-  const legGeom = new THREE.BoxGeometry(0.3, 0.8, 0.3);
-  const createLeg = (x: number) => {
-    const legGroup = new THREE.Group();
-    legGroup.position.set(x, 0.8, 0);
-    const legMesh = new THREE.Mesh(legGeom, pantsMat);
-    legMesh.position.set(0, -0.4, 0);
-    legMesh.castShadow = true;
-    legGroup.add(legMesh);
-    group.add(legGroup);
-    return legGroup;
-  };
-  const leftLegFront = createLeg(-0.2);
-  const rightLegFront = createLeg(0.2);
-
-  // Arms (outstretched forward for zombie posture)
-  const armGeom = new THREE.BoxGeometry(0.28, 0.8, 0.28);
-  const createArm = (x: number) => {
-    const armGroup = new THREE.Group();
-    armGroup.position.set(x, 1.5, 0);
-    const armMesh = new THREE.Mesh(armGeom, skinMat);
-    armMesh.position.set(0, -0.35, 0.25);
-    armMesh.rotation.x = -Math.PI / 2.2; // Pointed forward
-    armMesh.castShadow = true;
-    armGroup.add(armMesh);
-    group.add(armGroup);
-    return armGroup;
-  };
-  const leftArm = createArm(-0.48);
-  const rightArm = createArm(0.48);
-
-  return { group, head: headGroup, leftLegFront, rightLegFront, leftArm, rightArm };
-}
-
 // 3. Web Audio Synth Sound Effects
 let audioCtx: AudioContext | null = null;
 
@@ -188,7 +105,7 @@ function getAudioContext(): AudioContext {
   return audioCtx;
 }
 
-export function playSoundEffect(type: "hit" | "block_break" | "pickup" | "eat" | "player_hurt" | "player_death") {
+export function playSoundEffect(type: "block_break" | "pickup" | "success") {
   try {
     const ctx = getAudioContext();
     const now = ctx.currentTime;
@@ -217,54 +134,22 @@ export function playSoundEffect(type: "hit" | "block_break" | "pickup" | "eat" |
       gain.connect(ctx.destination);
       osc.start(now);
       osc.stop(now + 0.1);
-    } else if (type === "hit") {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = "sawtooth";
-      osc.frequency.setValueAtTime(220, now);
-      osc.frequency.exponentialRampToValueAtTime(80, now + 0.15);
-      gain.gain.setValueAtTime(0.25, now);
-      gain.gain.linearRampToValueAtTime(0.01, now + 0.15);
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start(now);
-      osc.stop(now + 0.15);
-    } else if (type === "player_hurt") {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = "square";
-      osc.frequency.setValueAtTime(180, now);
-      osc.frequency.exponentialRampToValueAtTime(90, now + 0.2);
-      gain.gain.setValueAtTime(0.3, now);
-      gain.gain.linearRampToValueAtTime(0.01, now + 0.2);
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start(now);
-      osc.stop(now + 0.2);
-    } else if (type === "eat") {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = "sine";
-      osc.frequency.setValueAtTime(320, now);
-      osc.frequency.exponentialRampToValueAtTime(450, now + 0.1);
-      gain.gain.setValueAtTime(0.18, now);
-      gain.gain.linearRampToValueAtTime(0.01, now + 0.1);
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start(now);
-      osc.stop(now + 0.1);
-    } else if (type === "player_death") {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = "sawtooth";
-      osc.frequency.setValueAtTime(280, now);
-      osc.frequency.exponentialRampToValueAtTime(50, now + 0.6);
-      gain.gain.setValueAtTime(0.4, now);
-      gain.gain.linearRampToValueAtTime(0.01, now + 0.6);
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start(now);
-      osc.stop(now + 0.6);
+    } else if (type === "success") {
+      // Rising three-note chime for a completed goal
+      [523.25, 659.25, 783.99].forEach((freq, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        const t = now + i * 0.11;
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(freq, t);
+        gain.gain.setValueAtTime(0.0001, t);
+        gain.gain.linearRampToValueAtTime(0.16, t + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(t);
+        osc.stop(t + 0.32);
+      });
     }
   } catch {
     // Ignore audio context errors if blocked by browser autoplay policy

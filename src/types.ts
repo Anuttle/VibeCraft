@@ -16,6 +16,24 @@ export enum BlockType {
   SNOW = 14,
   WATER = 15,
   ICE = 16,
+  // Workshop building blocks and stations (Phase 2)
+  PLANKS = 17,
+  TIMBER = 18,
+  PLASTER = 19,
+  TYPE_CASE = 20,
+  PRESS = 21,
+  PAPER = 22,
+  INK = 23,
+  // Chapter scenery and stations (Phase 3)
+  STONE_BRICK = 24,
+  LACQUER = 25,
+  DESK = 26,
+  KILN = 27,
+  FURNACE = 28,
+  VAT = 29,
+  COUNTER = 30,
+  MAP_TABLE = 31,
+  CLAY = 32,
 }
 
 export interface BlockConfig {
@@ -44,6 +62,37 @@ export const BLOCK_CONFIGS: Record<BlockType, BlockConfig> = {
   [BlockType.SNOW]: { name: "Snow", color: "#f8fafc", isSolid: true }, // Slate-50
   [BlockType.WATER]: { name: "Water", color: "#38bdf8", isSolid: false, isTransparent: true }, // Sky-400
   [BlockType.ICE]: { name: "Ice", color: "#bae6fd", isSolid: true, isTransparent: true }, // Sky-200
+  [BlockType.PLANKS]: { name: "Planks", color: "#c08a4d", isSolid: true },
+  [BlockType.TIMBER]: { name: "Timber Beam", color: "#4a2c17", isSolid: true },
+  [BlockType.PLASTER]: { name: "Plaster", color: "#efe6d2", isSolid: true },
+  [BlockType.TYPE_CASE]: { name: "Type Case", color: "#6b3f1d", isSolid: true },
+  [BlockType.PRESS]: { name: "Printing Press", color: "#5b3a1e", isSolid: true },
+  [BlockType.PAPER]: { name: "Paper Stack", color: "#f5efe0", isSolid: true },
+  [BlockType.INK]: { name: "Ink Bench", color: "#1f1a17", isSolid: true },
+  [BlockType.STONE_BRICK]: { name: "Stone Brick", color: "#8b8378", isSolid: true },
+  [BlockType.LACQUER]: { name: "Red Lacquer", color: "#9f1d20", isSolid: true },
+  [BlockType.DESK]: { name: "Writing Desk", color: "#7c4a21", isSolid: true },
+  [BlockType.KILN]: { name: "Kiln", color: "#9a3412", isSolid: true },
+  [BlockType.FURNACE]: { name: "Furnace", color: "#44403c", isSolid: true },
+  [BlockType.VAT]: { name: "Paper Vat", color: "#3f6f8f", isSolid: true },
+  [BlockType.COUNTER]: { name: "Counter", color: "#7a5230", isSolid: true },
+  [BlockType.MAP_TABLE]: { name: "Map Table", color: "#a37b45", isSolid: true },
+  [BlockType.CLAY]: { name: "Clay Bench", color: "#b45f3c", isSolid: true },
+};
+
+/** Blocks that open a workshop activity when used. */
+/** Blocks used as stations; players can't build on top of them. */
+export const STATION_BLOCKS: Partial<Record<BlockType, true>> = {
+  [BlockType.TYPE_CASE]: true,
+  [BlockType.PRESS]: true,
+  [BlockType.INK]: true,
+  [BlockType.DESK]: true,
+  [BlockType.KILN]: true,
+  [BlockType.FURNACE]: true,
+  [BlockType.VAT]: true,
+  [BlockType.COUNTER]: true,
+  [BlockType.MAP_TABLE]: true,
+  [BlockType.CLAY]: true,
 };
 
 export interface ChunkKey {

@@ -1,1 +1,115 @@
 @import "tailwindcss";
+
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  background: #0c0a09;
+}
+
+body {
+  /* Stop iPad Safari from scrolling, bouncing, zooming or showing the
+     long-press menu while students play. Inputs opt back in below. */
+  overscroll-behavior: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-6px); }
+  75% { transform: translateX(6px); }
+}
+
+input,
+textarea {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+/* ---- Printing (journals and class reports) ---- */
+.print-only {
+  display: none;
+}
+
+@media print {
+  @page {
+    margin: 16mm;
+  }
+  html,
+  body,
+  #root {
+    height: auto !important;
+    overflow: visible !important;
+    background: #fff !important;
+  }
+  .screen-only {
+    display: none !important;
+  }
+  .print-only {
+    display: block !important;
+    color: #111;
+    font-family: Georgia, "Times New Roman", serif;
+  }
+  .print-title {
+    font-size: 24pt;
+    font-weight: 700;
+    margin: 0 0 4pt;
+  }
+  .print-sub,
+  .print-meta,
+  .print-key {
+    color: #444;
+    font-size: 10pt;
+    margin: 0 0 10pt;
+  }
+  .print-entry {
+    break-inside: avoid;
+    border-top: 1px solid #999;
+    padding-top: 8pt;
+    margin-top: 12pt;
+  }
+  .print-entry h2 {
+    font-size: 15pt;
+    margin: 0 0 2pt;
+  }
+  .print-entry ol {
+    padding-left: 18pt;
+    margin: 0;
+  }
+  .print-entry li {
+    margin: 0 0 6pt;
+  }
+  .print-q {
+    font-weight: 700;
+    font-size: 11pt;
+    margin: 0;
+  }
+  .print-a {
+    font-size: 12pt;
+    margin: 0;
+    white-space: pre-line;
+  }
+  .print-table {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 10.5pt;
+    margin-bottom: 10pt;
+  }
+  .print-table th,
+  .print-table td {
+    border: 1px solid #888;
+    padding: 4pt 6pt;
+    text-align: center;
+  }
+  .print-table td:first-child,
+  .print-table th:first-child {
+    text-align: left;
+  }
+}

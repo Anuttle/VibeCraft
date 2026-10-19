@@ -1,6 +1,6 @@
 import { BlockType } from "../types";
 
-export type ItemType = "block" | "tool" | "weapon" | "food" | "resource";
+export type ItemType = "block" | "tool" | "resource";
 export type ToolType = "pickaxe" | "axe" | "shovel" | "none";
 
 export interface Item {
@@ -12,9 +12,7 @@ export interface Item {
   emoji: string; // Used as an icon in the inventory UI
   toolType?: ToolType; // For tool items
   miningSpeedMultiplier?: number; // Speed boost when harvesting
-  maxDurability?: number; // Total uses for tools/weapons
-  attackDamage?: number; // Damage dealt to mobs
-  foodRestore?: number; // Hunger restored when consumed
+  maxDurability?: number; // Total uses for tools
   blockType?: BlockType; // If it can be placed as a block
 }
 
@@ -180,7 +178,7 @@ export const ITEM_REGISTRY: Record<string, Item> = {
     maxStack: 64,
     color: "#d97706",
     emoji: "🧱",
-    // We can allow placing wood planks if we map to a BlockType, but for now we'll support them as a block/resource.
+    blockType: BlockType.PLANKS,
   },
 
   // Tools
@@ -238,76 +236,6 @@ export const ITEM_REGISTRY: Record<string, Item> = {
     toolType: "axe",
     miningSpeedMultiplier: 4.0,
     maxDurability: 131,
-  },
-
-  // Weapons
-  "wooden_sword": {
-    id: "wooden_sword",
-    name: "Wooden Sword",
-    type: "weapon",
-    maxStack: 1,
-    color: "#b45309",
-    emoji: "🪵🗡️",
-    attackDamage: 4,
-    maxDurability: 60,
-  },
-  "stone_sword": {
-    id: "stone_sword",
-    name: "Stone Sword",
-    type: "weapon",
-    maxStack: 1,
-    color: "#64748b",
-    emoji: "🪨🗡️",
-    attackDamage: 6,
-    maxDurability: 131,
-  },
-  "iron_sword": {
-    id: "iron_sword",
-    name: "Iron Sword",
-    type: "weapon",
-    maxStack: 1,
-    color: "#e2e8f0",
-    emoji: "⚙️🗡️",
-    attackDamage: 8,
-    maxDurability: 250,
-  },
-
-  // Food
-  "cooked_porkchop": {
-    id: "cooked_porkchop",
-    name: "Cooked Porkchop",
-    type: "food",
-    maxStack: 64,
-    color: "#f43f5e",
-    emoji: "🥩",
-    foodRestore: 8,
-  },
-  "apple": {
-    id: "apple",
-    name: "Red Apple",
-    type: "food",
-    maxStack: 64,
-    color: "#ef4444",
-    emoji: "🍎",
-    foodRestore: 4,
-  },
-  "bread": {
-    id: "bread",
-    name: "Fresh Bread",
-    type: "food",
-    maxStack: 64,
-    color: "#f59e0b",
-    emoji: "🍞",
-    foodRestore: 6,
-  },
-  "rotten_flesh": {
-    id: "rotten_flesh",
-    name: "Rotten Flesh",
-    type: "food",
-    maxStack: 64,
-    color: "#15803d",
-    emoji: "🍖",
-    foodRestore: 2,
   },
 };
 
@@ -427,6 +355,30 @@ export const BLOCK_DROP_TABLE: Record<BlockType, BlockDrop | null> = {
     requiredTool: "none",
     hardness: 0.5,
   },
+  [BlockType.PLANKS]: {
+    itemId: "wood_planks",
+    minCount: 1,
+    maxCount: 1,
+    requiredTool: "none",
+    hardness: 0.8,
+  },
+  // Workshop structure and stations can't be broken, so a chapter can't be
+  // made unwinnable by digging out the press.
+  [BlockType.TIMBER]: { itemId: "", minCount: 0, maxCount: 0, requiredTool: "none", hardness: Infinity },
+  [BlockType.PLASTER]: { itemId: "", minCount: 0, maxCount: 0, requiredTool: "none", hardness: Infinity },
+  [BlockType.TYPE_CASE]: { itemId: "", minCount: 0, maxCount: 0, requiredTool: "none", hardness: Infinity },
+  [BlockType.PRESS]: { itemId: "", minCount: 0, maxCount: 0, requiredTool: "none", hardness: Infinity },
+  [BlockType.PAPER]: { itemId: "", minCount: 0, maxCount: 0, requiredTool: "none", hardness: Infinity },
+  [BlockType.INK]: { itemId: "", minCount: 0, maxCount: 0, requiredTool: "none", hardness: Infinity },
+  [BlockType.STONE_BRICK]: { itemId: "", minCount: 0, maxCount: 0, requiredTool: "none", hardness: Infinity },
+  [BlockType.LACQUER]: { itemId: "", minCount: 0, maxCount: 0, requiredTool: "none", hardness: Infinity },
+  [BlockType.DESK]: { itemId: "", minCount: 0, maxCount: 0, requiredTool: "none", hardness: Infinity },
+  [BlockType.KILN]: { itemId: "", minCount: 0, maxCount: 0, requiredTool: "none", hardness: Infinity },
+  [BlockType.FURNACE]: { itemId: "", minCount: 0, maxCount: 0, requiredTool: "none", hardness: Infinity },
+  [BlockType.VAT]: { itemId: "", minCount: 0, maxCount: 0, requiredTool: "none", hardness: Infinity },
+  [BlockType.COUNTER]: { itemId: "", minCount: 0, maxCount: 0, requiredTool: "none", hardness: Infinity },
+  [BlockType.MAP_TABLE]: { itemId: "", minCount: 0, maxCount: 0, requiredTool: "none", hardness: Infinity },
+  [BlockType.CLAY]: { itemId: "", minCount: 0, maxCount: 0, requiredTool: "none", hardness: Infinity },
   [BlockType.WATER]: {
     itemId: "",
     minCount: 0,
@@ -441,116 +393,44 @@ export interface CraftingResult {
   count: number;
 }
 
-export function checkCraftingRecipe(grid: string[]): CraftingResult | null {
-  const counts: Record<string, number> = {};
-  let totalItems = 0;
-  for (const id of grid) {
-    if (id) {
-      counts[id] = (counts[id] || 0) + 1;
-      totalItems++;
-    }
-  }
-
-  if (totalItems === 0) return null;
-
-  // 4 Wood Planks -> Crafting Table (2x2 or 3x3)
-  if (totalItems === 4 && counts["wood_planks"] === 4) {
-    return { itemId: "crafting_table", count: 1 };
-  }
-
-  // 1 Wood Log -> 4 Oak Planks
-  if (totalItems === 1 && counts["wood_log"] === 1) {
-    return { itemId: "wood_planks", count: 4 };
-  }
-
-  // 2 Wood Planks -> 4 Sticks
-  if (totalItems === 2 && counts["wood_planks"] === 2) {
-    return { itemId: "stick", count: 4 };
-  }
-
-  // 1 Coal + 1 Stick -> 4 Torches
-  if (totalItems === 2 && counts["coal"] === 1 && counts["stick"] === 1) {
-    return { itemId: "torch", count: 4 };
-  }
-
-  // 1 Wood Log + 1 Stick -> 4 Torches (survival shortcut)
-  if (totalItems === 2 && counts["wood_log"] === 1 && counts["stick"] === 1) {
-    return { itemId: "torch", count: 4 };
-  }
-
-  // Wooden Pickaxe (3 Wood Planks + 2 Sticks or 1 Stick)
-  if (
-    counts["wood_planks"] === 3 &&
-    (counts["stick"] === 2 || counts["stick"] === 1) &&
-    (totalItems === 5 || totalItems === 4)
-  ) {
-    return { itemId: "wooden_pickaxe", count: 1 };
-  }
-
-  // Stone Pickaxe (3 Cobblestone + 2 Sticks or 1 Stick)
-  if (
-    counts["cobblestone"] === 3 &&
-    (counts["stick"] === 2 || counts["stick"] === 1) &&
-    (totalItems === 5 || totalItems === 4)
-  ) {
-    return { itemId: "stone_pickaxe", count: 1 };
-  }
-
-  // Iron Pickaxe (3 Raw Iron + 2 Sticks or 1 Stick)
-  if (
-    counts["raw_iron"] === 3 &&
-    (counts["stick"] === 2 || counts["stick"] === 1) &&
-    (totalItems === 5 || totalItems === 4)
-  ) {
-    return { itemId: "iron_pickaxe", count: 1 };
-  }
-
-  // Wooden Axe (3 Wood Planks + 2 Sticks or 2 Wood Planks + 1 Stick)
-  if (
-    ((counts["wood_planks"] === 3 && counts["stick"] === 2 && totalItems === 5) ||
-      (counts["wood_planks"] === 2 && counts["stick"] === 1 && totalItems === 3))
-  ) {
-    return { itemId: "wooden_axe", count: 1 };
-  }
-
-  // Stone Axe (3 Cobblestone + 2 Sticks or 2 Cobblestone + 1 Stick)
-  if (
-    ((counts["cobblestone"] === 3 && counts["stick"] === 2 && totalItems === 5) ||
-      (counts["cobblestone"] === 2 && counts["stick"] === 1 && totalItems === 3))
-  ) {
-    return { itemId: "stone_axe", count: 1 };
-  }
-
-  // Wooden Sword (2 Wood Planks + 1 Stick)
-  if (totalItems === 3 && counts["wood_planks"] === 2 && counts["stick"] === 1) {
-    return { itemId: "wooden_sword", count: 1 };
-  }
-
-  // Stone Sword (2 Cobblestone + 1 Stick)
-  if (totalItems === 3 && counts["cobblestone"] === 2 && counts["stick"] === 1) {
-    return { itemId: "stone_sword", count: 1 };
-  }
-
-  // Iron Sword (2 Raw Iron + 1 Stick)
-  if (totalItems === 3 && counts["raw_iron"] === 2 && counts["stick"] === 1) {
-    return { itemId: "iron_sword", count: 1 };
-  }
-
-  // 3 Leaves -> 1 Apple
-  if (totalItems === 3 && counts["leaves"] === 3) {
-    return { itemId: "apple", count: 1 };
-  }
-
-  // 3 Wood Logs -> 2 Bread (survival shortcut)
-  if (totalItems === 3 && counts["wood_log"] === 3) {
-    return { itemId: "bread", count: 2 };
-  }
-
-  // 2 Dirt -> 2 Grass Block
-  if (totalItems === 2 && counts["dirt"] === 2) {
-    return { itemId: "grass_block", count: 2 };
-  }
-
-  return null;
+/**
+ * Shapeless recipes: the grid must hold exactly these items in these amounts,
+ * in any arrangement. Add a separate entry for each accepted variation.
+ */
+export interface Recipe {
+  ingredients: Record<string, number>;
+  result: string;
+  count: number;
 }
 
+export const RECIPES: Recipe[] = [
+  { ingredients: { wood_log: 1 }, result: "wood_planks", count: 4 },
+  { ingredients: { wood_planks: 2 }, result: "stick", count: 4 },
+  { ingredients: { wood_planks: 4 }, result: "crafting_table", count: 1 },
+  { ingredients: { coal: 1, stick: 1 }, result: "torch", count: 4 },
+  { ingredients: { wood_log: 1, stick: 1 }, result: "torch", count: 4 },
+  { ingredients: { wood_planks: 3, stick: 2 }, result: "wooden_pickaxe", count: 1 },
+  { ingredients: { wood_planks: 3, stick: 1 }, result: "wooden_pickaxe", count: 1 },
+  { ingredients: { cobblestone: 3, stick: 2 }, result: "stone_pickaxe", count: 1 },
+  { ingredients: { cobblestone: 3, stick: 1 }, result: "stone_pickaxe", count: 1 },
+  { ingredients: { raw_iron: 3, stick: 2 }, result: "iron_pickaxe", count: 1 },
+  { ingredients: { raw_iron: 3, stick: 1 }, result: "iron_pickaxe", count: 1 },
+  { ingredients: { wood_planks: 2, stick: 1 }, result: "wooden_axe", count: 1 },
+  { ingredients: { cobblestone: 2, stick: 1 }, result: "stone_axe", count: 1 },
+  { ingredients: { dirt: 2 }, result: "grass_block", count: 2 },
+];
+
+export function checkCraftingRecipe(grid: string[]): CraftingResult | null {
+  const counts: Record<string, number> = {};
+  for (const id of grid) {
+    if (id) counts[id] = (counts[id] || 0) + 1;
+  }
+  const kinds = Object.keys(counts);
+  if (kinds.length === 0) return null;
+
+  const match = RECIPES.find((r) => {
+    const needed = Object.keys(r.ingredients);
+    return needed.length === kinds.length && needed.every((id) => counts[id] === r.ingredients[id]);
+  });
+  return match ? { itemId: match.result, count: match.count } : null;
+}
