@@ -26,12 +26,22 @@ export function seededShuffle<T>(items: T[], seedText: string): T[] {
   return out;
 }
 
-export function buildTrays(cfg: TypesetConfig): Trays {
+/**
+ * Shuffle, but never hand back the original order when there is a choice:
+ * a list that happens to stay sorted would give the answer away.
+ */
+export function shuffleOutOfOrder<T>(items: T[], seedText: string): T[] {
+  const out = seededShuffle(items, seedText);
+  if (items.length > 1 && out.every((x, i) => x === items[i])) out.push(out.shift()!);
+  return out;
+}
+
+export function buildTrays(cfg: TypesetConfig, seed = ""): Trays {
   const text = cfg.lines.join("");
   const letters = new Set<string>();
   for (const ch of text + cfg.distractors) if (ch !== " ") letters.add(ch);
   const order = (list: string[]) =>
-    cfg.shuffle ? seededShuffle(list, text) : [...list].sort((a, b) => a.localeCompare(b, "es"));
+    cfg.shuffle ? seededShuffle(list, text + seed) : [...list].sort((a, b) => a.localeCompare(b, "es"));
 
   const all = [...letters];
   if (!cfg.caseSplit) return { upper: order(all), lower: [], space: cfg.lines.some((l) => l.includes(" ")) };

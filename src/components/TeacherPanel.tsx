@@ -2,7 +2,15 @@ import React, { useState } from "react";
 import { Copy, X } from "lucide-react";
 import { useApp } from "../AppContext";
 import { BAND_DEFAULT_TIER, BANDS, Band, TIERS, TIER_LEXILE } from "../i18n/types";
-import { ClassSettings, buildGroupLink, getTeacherPin, setTeacherPin } from "../settings/settings";
+import {
+  ClassSettings,
+  buildGroupLink,
+  getTeacherPin,
+  isEasyPin,
+  pinLockRemaining,
+  recordPinAttempt,
+  setTeacherPin,
+} from "../settings/settings";
 import { CHAPTERS } from "../content/chapters";
 import { narrator } from "../audio/narrator";
 import { LangToggle } from "./screens";
@@ -23,17 +31,24 @@ function PinGate({ onUnlocked, onClose }: { onUnlocked: () => void; onClose: () 
   const app = useApp();
   const existing = getTeacherPin();
   const [pin, setPin] = useState("");
-  const [error, setError] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!existing) {
-      if (/^\d{4}$/.test(pin)) {
+      if (!/^\d{4}$/.test(pin)) setError(app.ui("pinFourDigits"));
+      else if (isEasyPin(pin)) setError(app.ui("easyPin"));
+      else {
         setTeacherPin(pin);
         onUnlocked();
-      } else setError(true);
-    } else if (pin === existing) onUnlocked();
-    else setError(true);
+      }
+      return;
+    }
+    const wait = pinLockRemaining();
+    if (wait > 0) return setError(app.ui("pinLocked", { n: Math.ceil(wait / 1000) }));
+    recordPinAttempt(pin === existing);
+    if (pin === existing) onUnlocked();
+    else setError(app.ui("wrongPin"));
   };
 
   return (
@@ -50,12 +65,12 @@ function PinGate({ onUnlocked, onClose }: { onUnlocked: () => void; onClose: () 
         value={pin}
         onChange={(e) => {
           setPin(e.target.value.replace(/\D/g, ""));
-          setError(false);
+          setError(null);
         }}
         autoFocus
         className="min-h-14 rounded-xl border border-stone-600 bg-stone-950 px-4 text-center font-mono text-2xl tracking-[0.5em] text-stone-100 outline-none focus:border-amber-400"
       />
-      {error && <p className="text-sm text-rose-400">{app.ui("wrongPin")}</p>}
+      {error && <p className="text-sm text-rose-400">{error}</p>}
       <p className="text-xs text-stone-400">{app.ui("pinNote")}</p>
       <div className="flex gap-3">
         <button type="button" onClick={onClose} className="min-h-12 flex-1 rounded-xl border border-stone-700 text-stone-200">
@@ -211,13 +226,26 @@ function Settings({ settings, profiles, onPrint, onSave, onClearData, onClose }:
     });
   };
 
+  const [pinIsEasy, setPinIsEasy] = useState(() => isEasyPin(getTeacherPin() ?? ""));
   const changePin = () => {
     const pin = window.prompt(app.ui("createPin"));
-    if (pin && /^\d{4}$/.test(pin)) setTeacherPin(pin);
+    if (pin === null) return;
+    if (!/^\d{4}$/.test(pin)) return window.alert(app.ui("pinFourDigits"));
+    if (isEasyPin(pin)) return window.alert(app.ui("easyPin"));
+    setTeacherPin(pin);
+    setPinIsEasy(false);
   };
 
   return (
     <div className="flex flex-col gap-6">
+      {pinIsEasy && (
+        <section role="alert" className="flex flex-wrap items-center gap-3 rounded-xl border border-amber-500 bg-amber-950/50 p-3 text-amber-100">
+          <span className="flex-1">{app.ui("easyPinWarning")}</span>
+          <button type="button" onClick={changePin} className="min-h-11 rounded-lg bg-amber-500 px-4 font-bold text-stone-950">
+            {app.ui("changePin")}
+          </button>
+        </section>
+      )}
       <section className="flex flex-col gap-2">
         <h3 className="font-bold text-amber-300">{app.ui("gradeBand")}</h3>
         <Segmented

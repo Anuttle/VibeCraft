@@ -1,11 +1,12 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { CheckCircle2, XCircle } from "lucide-react";
 import { useApp } from "../../AppContext";
 import type { QuizConfig, QuizItem, QuizResult } from "../../game/activities";
+import { seededShuffle } from "../../game/typesetting";
 import { playSoundEffect } from "../../utils/mobs";
 import MinigameFrame from "./MinigameFrame";
 import { OrderPicker } from "./SequenceGame";
-import { Feedback, FinishPanel, Panel, PrimaryButton } from "./shared";
+import { Feedback, FinishPanel, Panel, PrimaryButton, useShuffleSeed } from "./shared";
 
 interface QuizGameProps {
   cfg: QuizConfig;
@@ -86,6 +87,18 @@ function ItemView({ item, onNext }: { item: QuizItem; onNext: (r: Response) => v
   const [evidenceOk, setEvidenceOk] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
 
+  // Show choices in a new order each time, so the right answer isn't always in
+  // the same spot. Indexes still refer to the order the content was written in.
+  const seed = useShuffleSeed();
+  const shown = useMemo(() => {
+    const count = item.kind === "choice" ? item.options.length : item.kind === "evidence" ? item.evidence.length : 0;
+    return seededShuffle(Array.from({ length: count }, (_, i) => i), item.prompt + seed);
+  }, [item, seed]);
+  const claimOrder = useMemo(
+    () => (item.kind === "evidence" ? seededShuffle(item.claims.map((_, i) => i), item.prompt + "claims" + seed) : []),
+    [item, seed]
+  );
+
   const next = (r: Response) => onNext(r);
 
   if (item.kind === "choice") {
@@ -94,7 +107,7 @@ function ItemView({ item, onNext }: { item: QuizItem; onNext: (r: Response) => v
     return (
       <Panel>
         <div className={`grid gap-3 ${item.options.length <= 3 && isK2 ? "sm:grid-cols-3" : "sm:grid-cols-2"}`}>
-          {item.options.map((o, i) => (
+          {shown.map((i) => [i, item.options[i]] as const).map(([i, o]) => (
             <button
               key={i}
               type="button"
@@ -249,7 +262,7 @@ function ItemView({ item, onNext }: { item: QuizItem; onNext: (r: Response) => v
     <Panel>
       <p className="font-semibold text-amber-300">{app.ui("pickClaim")}</p>
       <div className="grid gap-2">
-        {item.claims.map((c, i) => (
+        {claimOrder.map((i) => [i, item.claims[i]] as const).map(([i, c]) => (
           <button
             key={i}
             type="button"
@@ -270,7 +283,8 @@ function ItemView({ item, onNext }: { item: QuizItem; onNext: (r: Response) => v
         <>
           <p className="font-semibold text-amber-300">{app.ui("pickEvidence", { n: item.pick })}</p>
           <div className="grid gap-2 sm:grid-cols-2">
-            {item.evidence.map((e, i) => {
+            {shown.map((i) => {
+              const e = item.evidence[i];
               const on = evidence.includes(i);
               return (
                 <button

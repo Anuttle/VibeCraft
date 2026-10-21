@@ -1,10 +1,10 @@
 import { useMemo, useState } from "react";
 import { useApp } from "../../AppContext";
 import type { CarveConfig } from "../../game/activities";
-import { seededShuffle } from "../../game/typesetting";
+import { shuffleOutOfOrder } from "../../game/typesetting";
 import { playSoundEffect } from "../../utils/mobs";
 import MinigameFrame from "./MinigameFrame";
-import { Feedback, FinishPanel, Panel } from "./shared";
+import { Feedback, FinishPanel, Panel, useShuffleSeed } from "./shared";
 
 interface CarveGameProps {
   cfg: CarveConfig;
@@ -25,6 +25,7 @@ const CARVINGS = [
 
 export default function CarveGame({ cfg, title, icon, onComplete, onClose }: CarveGameProps) {
   const app = useApp();
+  const seed = useShuffleSeed();
   const [round, setRound] = useState(0);
   const [feedback, setFeedback] = useState<{ text: string; good: boolean } | null>(null);
   const [wrong, setWrong] = useState<string[]>([]);
@@ -32,8 +33,8 @@ export default function CarveGame({ cfg, title, icon, onComplete, onClose }: Car
   const done = round >= cfg.glyphs.length;
 
   const options = useMemo(
-    () => seededShuffle(CARVINGS.slice(0, cfg.options), `${glyph}-${round}`),
-    [cfg.options, glyph, round]
+    () => shuffleOutOfOrder(CARVINGS.slice(0, cfg.options), `${glyph}-${round}-${seed}`),
+    [cfg.options, glyph, round, seed]
   );
 
   const choose = (opt: (typeof CARVINGS)[number]) => {

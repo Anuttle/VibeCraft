@@ -1,5 +1,14 @@
-import React from "react";
+import React, { useState } from "react";
 import { useApp } from "../../AppContext";
+
+/**
+ * A random seed fixed for as long as an activity stays open, so answer choices
+ * land in a new place each time it opens but don't jump around mid-question.
+ */
+export function useShuffleSeed(): string {
+  const [seed] = useState(() => Math.random().toString(36).slice(2));
+  return seed;
+}
 
 export function PrimaryButton({
   children,

@@ -94,12 +94,12 @@ export const TUTORIAL: Chapter = {
           es: { T1: "Consigue {n} troncos de un árbol.", T3: "Corta {n} troncos de un árbol." },
         },
         hintTouch: {
-          en: "Point the + at the trunk and tap ⛏. Then walk to the wood.",
-          es: "Apunta la + al tronco y toca ⛏. Luego camina hacia la madera.",
+          en: "Point the + at the trunk and hold ⛏ until it breaks. Then walk to the wood.",
+          es: "Apunta la + al tronco y mantén presionado ⛏ hasta que se rompa. Luego camina hacia la madera.",
         },
         hintMouse: {
-          en: "Point the + at the trunk and click. Then walk to the wood.",
-          es: "Apunta la + al tronco y haz clic. Luego camina hacia la madera.",
+          en: "Point the + at the trunk and hold the click until it breaks. Then walk to the wood.",
+          es: "Apunta la + al tronco y mantén presionado el clic hasta que se rompa. Luego camina hacia la madera.",
         },
       },
     },

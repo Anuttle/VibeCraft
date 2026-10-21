@@ -104,3 +104,35 @@ export function getTeacherPin(): string | null {
 export function setTeacherPin(pin: string): void {
   writeJson(PIN_KEY, pin);
 }
+
+/**
+ * PINs students would guess first: one digit repeated (1111), a run up or down
+ * (1234, 9876) or a repeated pair (1212).
+ */
+export function isEasyPin(pin: string): boolean {
+  if (!/^\d{4}$/.test(pin)) return false;
+  const d = [...pin].map(Number);
+  const steps = d.slice(1).map((x, i) => x - d[i]);
+  if (steps.every((s) => s === steps[0]) && Math.abs(steps[0]) <= 1) return true;
+  return pin.slice(0, 2) === pin.slice(2);
+}
+
+// After too many wrong tries the PIN box pauses, so it can't be guessed by
+// trying every number. Saved, so reloading the page doesn't reset it.
+const PIN_LOCK_KEY = "teacherPinLock";
+const MAX_PIN_TRIES = 5;
+const PIN_LOCK_MS = 60_000;
+
+/** Milliseconds until the PIN can be tried again; 0 when it can be tried now. */
+export function pinLockRemaining(now = Date.now()): number {
+  const lock = readJson<{ fails: number; until: number }>(PIN_LOCK_KEY, { fails: 0, until: 0 });
+  return Math.max(0, lock.until - now);
+}
+
+/** Record a PIN attempt; a right one clears the count. */
+export function recordPinAttempt(ok: boolean, now = Date.now()): void {
+  if (ok) return writeJson(PIN_LOCK_KEY, { fails: 0, until: 0 });
+  const lock = readJson<{ fails: number; until: number }>(PIN_LOCK_KEY, { fails: 0, until: 0 });
+  const fails = lock.fails + 1;
+  writeJson(PIN_LOCK_KEY, fails >= MAX_PIN_TRIES ? { fails: 0, until: now + PIN_LOCK_MS } : { fails, until: lock.until });
+}
