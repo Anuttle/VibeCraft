@@ -434,3 +434,37 @@ export function checkCraftingRecipe(grid: string[]): CraftingResult | null {
   });
   return match ? { itemId: match.result, count: match.count } : null;
 }
+
+// 4. Breaking time
+/** The tool that speeds up breaking each kind of block. */
+const BEST_TOOL: Partial<Record<BlockType, ToolType>> = {
+  [BlockType.STONE]: "pickaxe",
+  [BlockType.COAL]: "pickaxe",
+  [BlockType.IRON]: "pickaxe",
+  [BlockType.SANDSTONE]: "pickaxe",
+  [BlockType.ICE]: "pickaxe",
+  [BlockType.WOOD]: "axe",
+  [BlockType.PLANKS]: "axe",
+  [BlockType.CRAFTING_TABLE]: "axe",
+};
+
+/** Bare hands on a block that needs a tool take this many times longer. */
+const WRONG_TOOL_PENALTY = 3;
+
+/**
+ * Seconds of holding needed to break a block: its hardness, divided by the held
+ * tool's speed when it is the right kind, and much slower by hand when the block
+ * needs a tool. Infinity for blocks that can't be broken.
+ */
+export function breakSeconds(block: BlockType, held: Item | null): number {
+  const drop = BLOCK_DROP_TABLE[block];
+  if (!drop) return Infinity;
+  const toolType = held?.toolType ?? "none";
+  let seconds = drop.hardness;
+  if (toolType !== "none" && toolType === (BEST_TOOL[block] ?? drop.requiredTool)) {
+    seconds /= held?.miningSpeedMultiplier ?? 1;
+  } else if (drop.requiredTool !== "none" && toolType !== drop.requiredTool) {
+    seconds *= WRONG_TOOL_PENALTY;
+  }
+  return seconds;
+}

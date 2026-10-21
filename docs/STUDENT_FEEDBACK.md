@@ -71,22 +71,22 @@ Ranked by how much each problem gets in the way of the lessons. The status colum
 
 | # | Problem | Cause | Fix | Status |
 |---|---|---|---|---|
-| 1 | Can't split item stacks on iPad, so sticks can't be crafted | Splitting only worked with a right-click | Add a **Take: All / Half / One** switch to the bag that works with taps | To do |
-| 2 | Double-tap zooms in and won't zoom out | iPad Safari ignores the page's "no zoom" setting | Block double-tap and pinch zoom in code | To do |
-| 3 | Iron frame: the symbol to tap seems missing, or a wrong one looks right | The clay pieces are drawn mirrored, and many mirrored Chinese characters look like different characters | Print the readable character under each clay piece, and shuffle the tray each time | To do |
-| 4 | Closing the journal questions with the X loses your answers | The questions were removed from the screen when closed | Keep the questions in place while they're closed, so reopening picks up where you left off | To do |
-| 5 | The journal button covers the Use/Talk button | Both sat in the same spot | Move the journal button up when the Use/Talk button is showing | To do |
+| 1 | Can't split item stacks on iPad, so sticks can't be crafted | Splitting only worked with a right-click | Add a **Take: All / Half / One** switch to the bag that works with taps | Fixed |
+| 2 | Double-tap zooms in and won't zoom out | iPad Safari ignores the page's "no zoom" setting | Block double-tap and pinch zoom in code | Fixed |
+| 3 | Iron frame: the symbol to tap seems missing, or a wrong one looks right | The clay pieces are drawn mirrored, and many mirrored Chinese characters look like different characters | Print the readable character under each clay piece, and shuffle the tray each time | Fixed |
+| 4 | Closing the journal questions with the X loses your answers | The questions were removed from the screen when closed | Keep the questions in place while they're closed, so reopening picks up where you left off | Fixed |
+| 5 | The journal button covers the Use/Talk button | Both sat in the same spot | Move the journal button up when the Use/Talk button is showing | Fixed |
 
 ### Priority 2: makes the game feel broken
 
 | # | Problem | Cause | Fix | Status |
 |---|---|---|---|---|
-| 6 | Every block breaks instantly, even with a bare fist | Breaking was a single tap | Hold to break. Harder blocks take longer, and the right tool is faster | To do |
-| 7 | Mouse and trackpad clicks do nothing on iPad | iPad uses touch controls, where a click only turned the camera | In touch mode, a click breaks (hold) and a right-click or two-finger click places | To do |
-| 8 | Can't look straight up or down | The camera stopped about 5 degrees short | Let the camera reach almost straight up and down | To do |
-| 9 | The correct answer is always in the same place | Choices were shown in the order they were written, and the right one was often first | Shuffle answer choices each time a question appears | To do |
-| 10 | Water is solid | Water counted as a solid block | You can wade through water at a slower pace and jump to swim up | To do |
-| 11 | Teacher PIN 1234 is easy to guess | Whoever opens the panel first chooses the PIN, and 1234 was allowed | Refuse easy PINs (1234, 0000, 1111 and so on), warn when the saved PIN is easy, and pause after 5 wrong tries | To do |
+| 6 | Every block breaks instantly, even with a bare fist | Breaking was a single tap | Hold to break. Harder blocks take longer, and the right tool is faster | Fixed |
+| 7 | Mouse and trackpad clicks do nothing on iPad | iPad uses touch controls, where a click only turned the camera | In touch mode, a click breaks (hold) and a right-click or two-finger click places | Fixed |
+| 8 | Can't look straight up or down | The camera stopped about 5 degrees short | Let the camera reach almost straight up and down | Fixed |
+| 9 | The correct answer is always in the same place | Choices were shown in the order they were written, and the right one was often first | Shuffle answer choices each time a question appears | Fixed |
+| 10 | Water is solid | Water counted as a solid block | You can wade through water at a slower pace and jump to swim up | Fixed (not yet tried on a device) |
+| 11 | Teacher PIN 1234 is easy to guess | Whoever opens the panel first chooses the PIN, and 1234 was allowed | Refuse easy PINs (1234, 0000, 1111 and so on), warn when the saved PIN is easy, and pause after 5 wrong tries | Fixed |
 
 ### Needs a decision from the teacher
 

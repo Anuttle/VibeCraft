@@ -3,7 +3,7 @@ import * as THREE from "three";
 import { BlockType, InventorySlot, STATION_BLOCKS } from "../types";
 import { TerrainGenerator, CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z, SEA_LEVEL } from "../utils/terrain";
 import { buildChunkGeometry } from "../utils/meshing";
-import { ITEM_REGISTRY, BLOCK_DROP_TABLE } from "../utils/items";
+import { ITEM_REGISTRY, BLOCK_DROP_TABLE, breakSeconds } from "../utils/items";
 import { MobEntity, MobType, createPigMesh, playSoundEffect } from "../utils/mobs";
 import { InputMode, gameActions, resetTouchInput, touchInput } from "../game/input";
 import { GameEvent } from "../game/quest";
@@ -144,6 +144,9 @@ export default function GameCanvas({
   const SPEED = 6.0; // Units per second
   const JUMP_FORCE = 8.5;
   const GRAVITY = 24.0;
+  const WATER_SPEED = 0.55; // Wading is slower than walking
+  const WATER_SINK = 2.5; // Top speed sinking through water
+  const SWIM_UP = 5.5; // Enough to climb out onto a bank one block higher
   const PLAYER_HEIGHT = 1.8; // Eye height
   const MOUSE_SENSITIVITY = 0.0022;
   const TOUCH_SENSITIVITY = 0.006;
@@ -286,6 +289,12 @@ export default function GameCanvas({
     const selectionBox = new THREE.LineSegments(selectionGeometry, selectionMaterial);
     selectionBox.visible = false;
     scene.add(selectionBox);
+
+    // Darkens the block being broken as the player keeps holding.
+    const crackMaterial = new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0, depthWrite: false });
+    const crackMesh = new THREE.Mesh(new THREE.BoxGeometry(1.004, 1.004, 1.004), crackMaterial);
+    crackMesh.visible = false;
+    scene.add(crackMesh);
 
     const raycaster = new THREE.Raycaster();
     const SCREEN_CENTER = new THREE.Vector2(0, 0);
@@ -431,6 +440,12 @@ export default function GameCanvas({
 
     const PLAYER_RADIUS = 0.3;
 
+    /** Blocks the player can't walk through. Water can be waded through. */
+    const isSolidAt = (x: number, y: number, z: number) => {
+      const b = getBlockAtWorld(x, y, z);
+      return b !== BlockType.AIR && b !== BlockType.WATER;
+    };
+
     const isColliding = (pos: THREE.Vector3): boolean => {
       const radius = PLAYER_RADIUS - 0.01;
       const minX = Math.floor(pos.x - radius);
@@ -442,7 +457,7 @@ export default function GameCanvas({
       for (let x = minX; x <= maxX; x++) {
         for (let y = minY; y <= maxY; y++) {
           for (let z = minZ; z <= maxZ; z++) {
-            if (getBlockAtWorld(x, y, z) !== BlockType.AIR) return true;
+            if (isSolidAt(x, y, z)) return true;
           }
         }
       }
@@ -458,7 +473,7 @@ export default function GameCanvas({
       const feetY = Math.floor(pos.y - PLAYER_HEIGHT - 0.01);
       for (let x = minX; x <= maxX; x++) {
         for (let z = minZ; z <= maxZ; z++) {
-          if (getBlockAtWorld(x, feetY, z) !== BlockType.AIR) return true;
+          if (isSolidAt(x, feetY, z)) return true;
         }
       }
       return false;
@@ -566,19 +581,26 @@ export default function GameCanvas({
       return hit;
     };
 
-    /** Break the targeted block. */
-    const primaryAction = () => {
-      if (!inputEnabledRef.current) return;
+    /** The block under the crosshair, if any is within reach. */
+    const blockUnderCrosshair = () => {
       const hit = targetedBlock();
-      if (!hit) return;
+      if (!hit) return null;
       const target = hit.point.clone().sub(hit.face!.normal.clone().multiplyScalar(0.5));
       const bx = Math.floor(target.x);
       const by = Math.floor(target.y);
       const bz = Math.floor(target.z);
-      if (by <= 0) return; // bedrock
+      if (by <= 0) return null; // bedrock
+      return { bx, by, bz, block: getBlockAtWorld(bx, by, bz) };
+    };
 
-      const activeSlot = hotbarRef.current[activeSlotIndexRef.current];
-      const activeItemDef = activeSlot?.itemId ? ITEM_REGISTRY[activeSlot.itemId] : null;
+    const heldItem = () => {
+      const slot = hotbarRef.current[activeSlotIndexRef.current];
+      return slot?.itemId ? ITEM_REGISTRY[slot.itemId] ?? null : null;
+    };
+
+    /** Remove a block and drop its item, if the held tool can harvest it. */
+    const breakBlockAt = (bx: number, by: number, bz: number) => {
+      const activeItemDef = heldItem();
       const oldBlock = getBlockAtWorld(bx, by, bz);
       if (!Number.isFinite(BLOCK_DROP_TABLE[oldBlock]?.hardness ?? 0)) return; // bedrock, water, workshop
       setBlockAtWorld(bx, by, bz, BlockType.AIR);
@@ -599,6 +621,47 @@ export default function GameCanvas({
         }
       }
       if (activeItemDef?.type === "tool") onToolUsedRef.current?.(activeSlotIndexRef.current);
+    };
+
+    // Breaking takes a hold: the game loop counts up while the button, mouse
+    // button or finger stays down, and breaks the block when time is up.
+    const breaking = { held: false, key: "", elapsed: 0 };
+    const startBreaking = () => {
+      if (inputEnabledRef.current) breaking.held = true;
+    };
+    const stopBreaking = () => {
+      breaking.held = false;
+      breaking.key = "";
+      breaking.elapsed = 0;
+      crackMesh.visible = false;
+    };
+
+    const updateBreaking = (delta: number) => {
+      const target = breaking.held && inputEnabledRef.current ? blockUnderCrosshair() : null;
+      const seconds = target ? breakSeconds(target.block, heldItem()) : Infinity;
+      if (!target || !Number.isFinite(seconds)) {
+        breaking.key = "";
+        breaking.elapsed = 0;
+        crackMesh.visible = false;
+        if (!inputEnabledRef.current) breaking.held = false;
+        return;
+      }
+      const key = `${target.bx},${target.by},${target.bz}`;
+      if (key !== breaking.key) {
+        breaking.key = key;
+        breaking.elapsed = 0;
+      }
+      breaking.elapsed += delta;
+      if (breaking.elapsed >= seconds) {
+        breakBlockAt(target.bx, target.by, target.bz);
+        breaking.key = "";
+        breaking.elapsed = 0;
+        crackMesh.visible = false;
+        return;
+      }
+      crackMesh.position.set(target.bx + 0.5, target.by + 0.5, target.bz + 0.5);
+      crackMaterial.opacity = 0.1 + 0.5 * (breaking.elapsed / seconds);
+      crackMesh.visible = true;
     };
 
     /** Use the targeted block (crafting table) or place the held block. */
@@ -659,9 +722,15 @@ export default function GameCanvas({
         unstuck();
         if (yaw !== undefined && cameraRef.current) cameraRef.current.rotation.y = yaw;
       };
+      (window as unknown as { __ppTarget?: () => unknown }).__ppTarget = () => ({
+        target: blockUnderCrosshair(),
+        pitch: cameraRef.current?.rotation.x ?? 0,
+        breaking: { ...breaking },
+      });
     }
 
-    gameActions.primary = primaryAction;
+    gameActions.breakStart = startBreaking;
+    gameActions.breakStop = stopBreaking;
     gameActions.secondary = secondaryAction;
     gameActions.unstuck = unstuck;
 
@@ -671,7 +740,9 @@ export default function GameCanvas({
       if (!cameraRef.current) return;
       cameraRef.current.rotation.y -= dx * sensitivity;
       cameraRef.current.rotation.x -= dy * sensitivity;
-      cameraRef.current.rotation.x = Math.max(-Math.PI / 2.1, Math.min(Math.PI / 2.1, cameraRef.current.rotation.x));
+      // Almost straight up or down; exactly 90 degrees would flip the view.
+      const maxPitch = Math.PI / 2 - 0.01;
+      cameraRef.current.rotation.x = Math.max(-maxPitch, Math.min(maxPitch, cameraRef.current.rotation.x));
       lookAccum += Math.abs(dx * sensitivity);
     };
 
@@ -757,26 +828,46 @@ export default function GameCanvas({
       onActiveSlotIndexChangeRef.current((activeSlotIndexRef.current + dir + 9) % 9);
     };
 
+    // In touch mode a mouse or trackpad (an iPad with a keyboard case) has no
+    // pointer lock: hold the left button to break, drag to look around (which
+    // cancels the break), and right-click or two-finger click to place.
+    const DRAG_CANCELS_BREAK_PX = 8;
+    let mouseDownX = 0;
+    let mouseDownY = 0;
+    let lastRightDown = -Infinity;
+
     const handleContextMenu = (e: MouseEvent) => {
-      if (e.target === canvas) e.preventDefault();
+      if (e.target !== canvas) return;
+      e.preventDefault();
+      // Some trackpads only send this, without a right-button mousedown.
+      if (!document.pointerLockElement && inputModeRef.current === "touch" && e.timeStamp - lastRightDown > 400) {
+        secondaryAction();
+      }
     };
 
     const handleMouseDown = (e: MouseEvent) => {
       if (e.target !== canvas || !inputEnabledRef.current) return;
       if (document.pointerLockElement === canvas) {
-        if (e.button === 0) primaryAction();
+        if (e.button === 0) startBreaking();
         else if (e.button === 2) secondaryAction();
         return;
       }
-      if (inputModeRef.current === "touch") {
-        isMouseDragging = true;
-        lastMouseX = e.clientX;
-        lastMouseY = e.clientY;
+      if (inputModeRef.current !== "touch") return;
+      if (e.button === 2) {
+        lastRightDown = e.timeStamp;
+        secondaryAction();
+        return;
       }
+      if (e.button !== 0) return;
+      isMouseDragging = true;
+      lastMouseX = mouseDownX = e.clientX;
+      lastMouseY = mouseDownY = e.clientY;
+      startBreaking();
     };
 
     const handleMouseUp = () => {
       isMouseDragging = false;
+      stopBreaking();
     };
 
     const handleMouseMove = (e: MouseEvent) => {
@@ -787,6 +878,7 @@ export default function GameCanvas({
         applyLook(e.clientX - lastMouseX, e.clientY - lastMouseY, MOUSE_SENSITIVITY * 1.5);
         lastMouseX = e.clientX;
         lastMouseY = e.clientY;
+        if (breaking.held && Math.hypot(e.clientX - mouseDownX, e.clientY - mouseDownY) > DRAG_CANCELS_BREAK_PX) stopBreaking();
       } else {
         isMouseDragging = false;
       }
@@ -1083,6 +1175,14 @@ export default function GameCanvas({
         }
       }
 
+      // In water from the waist down, or with feet just above the surface (so a
+      // swimmer can still push up onto the bank).
+      const pp = playerPosition.current;
+      const waterAt = (dy: number) =>
+        getBlockAtWorld(Math.floor(pp.x), Math.floor(pp.y - PLAYER_HEIGHT + dy), Math.floor(pp.z)) === BlockType.WATER;
+      const inWater = waterAt(0.6) || waterAt(-0.5);
+      if (inWater) speedScale *= WATER_SPEED;
+
       if (moveDirection.lengthSq() > 0) {
         moveDirection.normalize();
         playerVelocity.current.x = moveDirection.x * SPEED * speedScale;
@@ -1098,10 +1198,17 @@ export default function GameCanvas({
       } else {
         isGrounded.current = false;
       }
-      if (!isGrounded.current) playerVelocity.current.y -= GRAVITY * delta;
+      if (inWater) {
+        if (!isGrounded.current) playerVelocity.current.y = Math.max(playerVelocity.current.y - GRAVITY * 0.2 * delta, -WATER_SINK);
+      } else if (!isGrounded.current) {
+        playerVelocity.current.y -= GRAVITY * delta;
+      }
 
       const wantsJump = enabled && (keysPressed.current.Space || touchInput.jump);
-      if (wantsJump && isGrounded.current) {
+      if (wantsJump && inWater) {
+        playerVelocity.current.y = SWIM_UP;
+        isGrounded.current = false;
+      } else if (wantsJump && isGrounded.current) {
         playerVelocity.current.y = JUMP_FORCE;
         isGrounded.current = false;
       }
@@ -1152,6 +1259,8 @@ export default function GameCanvas({
         lookAccum = 0;
       }
 
+      updateBreaking(delta);
+
       // Outline the block under the crosshair
       if (enabled) {
         const hit = targetedBlock();
@@ -1188,8 +1297,9 @@ export default function GameCanvas({
       canvas.removeEventListener("pointercancel", handlePointerUp);
       document.removeEventListener("pointerlockchange", handlePointerLockChange);
 
-      if (gameActions.primary === primaryAction) {
-        gameActions.primary = null;
+      if (gameActions.breakStart === startBreaking) {
+        gameActions.breakStart = null;
+        gameActions.breakStop = null;
         gameActions.secondary = null;
         gameActions.unstuck = null;
       }

@@ -21,6 +21,15 @@ body {
   touch-action: manipulation;
 }
 
+/* touch-action is not inherited by every element in Safari's zoom check, so
+   set it everywhere. It sits in the base layer so Tailwind's touch-none
+   (game view, joystick, buttons) still wins. */
+@layer base {
+  * {
+    touch-action: manipulation;
+  }
+}
+
 @keyframes shake {
   0%, 100% { transform: translateX(0); }
   25% { transform: translateX(-6px); }

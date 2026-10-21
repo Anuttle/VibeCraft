@@ -5,6 +5,7 @@ import type { TypesetConfig } from "../../content/press";
 import { buildTrays, gapCount, justify, plantError } from "../../game/typesetting";
 import { playSoundEffect } from "../../utils/mobs";
 import MinigameFrame from "./MinigameFrame";
+import { useShuffleSeed } from "./shared";
 
 interface TypesettingProps {
   cfg: TypesetConfig;
@@ -30,7 +31,8 @@ function Sort({ ch, size, mirrored = true }: { ch: string; size: "lg" | "md" | "
 
 export default function Typesetting({ cfg, title, icon, onComplete, onClose }: TypesettingProps) {
   const app = useApp();
-  const trays = useMemo(() => buildTrays(cfg), [cfg]);
+  const seed = useShuffleSeed();
+  const trays = useMemo(() => buildTrays(cfg, seed), [cfg, seed]);
   const proof = useMemo(() => plantError(cfg.lines[0]), [cfg]);
   const isK2 = app.band === "K-2";
   const tileSize = isK2 ? "lg" : "md";
@@ -143,7 +145,14 @@ export default function Typesetting({ cfg, title, icon, onComplete, onClose }: T
                 shaking ? "animate-[shake_0.3s]" : ""
               }`}
             >
-              <Sort ch={ch} size={tileSize} />
+              <span className="flex flex-col items-center gap-0.5">
+                <Sort ch={ch} size={tileSize} />
+                {cfg.showFace && (
+                  <span className="text-sm font-semibold text-amber-100" aria-hidden>
+                    {ch}
+                  </span>
+                )}
+              </span>
             </button>
           );
         })}

@@ -491,6 +491,11 @@ export interface TypesetConfig {
   shuffle: boolean;
   /** Spaces must be spread evenly when justifying. */
   evenSpacing: boolean;
+  /**
+   * Print the readable character under each mirrored sort. Used for Chinese
+   * clay type, where a mirrored character can look like a different one.
+   */
+  showFace?: boolean;
 }
 
 export const TYPESET: Record<Band, Record<Lang, TypesetConfig>> = {

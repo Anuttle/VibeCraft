@@ -3,6 +3,7 @@ import { InventorySlot } from "../types";
 import { ITEM_REGISTRY, Item, checkCraftingRecipe } from "../utils/items";
 import { X, Trash2, ArrowRight } from "lucide-react";
 import { useApp } from "../AppContext";
+import { TakeMode, tapSlot } from "../game/inventory";
 
 // Last pointer position, so a held item appears under the finger right away on
 // touch screens (there is no hover movement before the first tap).
@@ -38,6 +39,7 @@ export default function InventoryMenu({
   // Cursor item holds whatever slot the user has "lifted"
   const [cursorItem, setCursorItem] = useState<InventorySlot | null>(null);
   const [hoveredItem, setHoveredItem] = useState<Item | null>(null);
+  const [takeMode, setTakeMode] = useState<TakeMode>("all");
 
   // 3x3 / 2x2 Crafting Grid Mode
   const [is3x3Mode, setIs3x3Mode] = useState<boolean>(isCraftingTableOpen);
@@ -96,175 +98,39 @@ export default function InventoryMenu({
     onClose();
   };
 
-  // Handle slot clicks for main inventory and hotbar
-  const handleSlotClick = (
-    e: React.MouseEvent,
-    type: "inventory" | "hotbar",
-    index: number
-  ) => {
-    e.preventDefault();
-    const isRightClick = e.button === 2;
+  // A tap moves what the Take switch says. A right-click (mouse) always picks up
+  // half a stack or puts down one item, whatever the switch is set to.
+  const modesFor = (e: React.PointerEvent): [TakeMode, TakeMode] =>
+    e.button === 2 ? ["half", "one"] : [takeMode, takeMode];
 
+  // Handle slot clicks for main inventory and hotbar
+  const handleSlotClick = (e: React.PointerEvent, type: "inventory" | "hotbar", index: number) => {
+    e.preventDefault();
     const list = type === "inventory" ? [...inventory] : [...hotbar];
     const updateList = type === "inventory" ? onInventoryChange : onHotbarChange;
-    const currentSlot = list[index];
-
-    // Case 1: Cursor is empty
-    if (!cursorItem || cursorItem.itemId === "") {
-      if (currentSlot.itemId === "") return; // Clicked an empty slot
-
-      const itemDef = ITEM_REGISTRY[currentSlot.itemId];
-      if (!itemDef) return;
-
-      if (isRightClick && currentSlot.count > 1) {
-        // Split stack (Right Click)
-        const takeCount = Math.ceil(currentSlot.count / 2);
-        const keepCount = currentSlot.count - takeCount;
-
-        setCursorItem({ ...currentSlot, count: takeCount });
-        setHoveredItem(itemDef);
-        list[index] = { ...currentSlot, count: keepCount };
-        updateList(list);
-      } else {
-        // Take entire stack (Left Click)
-        setCursorItem({ ...currentSlot });
-        setHoveredItem(itemDef);
-        list[index] = { itemId: "", count: 0 };
-        updateList(list);
-      }
-    }
-    // Case 2: Cursor holds an item
-    else {
-      const cursorDef = ITEM_REGISTRY[cursorItem.itemId];
-      if (!cursorDef) return;
-
-      // Clicked an empty slot
-      if (currentSlot.itemId === "") {
-        if (isRightClick) {
-          // Place 1 unit
-          list[index] = { ...cursorItem, count: 1 };
-          if (cursorItem.count > 1) {
-            setCursorItem({ ...cursorItem, count: cursorItem.count - 1 });
-          } else {
-            setCursorItem(null);
-          }
-        } else {
-          // Place entire stack
-          list[index] = { ...cursorItem };
-          setCursorItem(null);
-        }
-        updateList(list);
-      }
-      // Clicked slot with same item type (Stacking)
-      else if (currentSlot.itemId === cursorItem.itemId) {
-        const maxStack = cursorDef.maxStack || 64;
-        if (isRightClick) {
-          if (currentSlot.count < maxStack) {
-            list[index].count += 1;
-            if (cursorItem.count > 1) {
-              setCursorItem({ ...cursorItem, count: cursorItem.count - 1 });
-            } else {
-              setCursorItem(null);
-            }
-            updateList(list);
-          }
-        } else {
-          const spaceLeft = maxStack - currentSlot.count;
-          if (spaceLeft > 0) {
-            const transfer = Math.min(spaceLeft, cursorItem.count);
-            list[index].count += transfer;
-            if (cursorItem.count > transfer) {
-              setCursorItem({ ...cursorItem, count: cursorItem.count - transfer });
-            } else {
-              setCursorItem(null);
-            }
-            updateList(list);
-          }
-        }
-      }
-      // Clicked slot with a different item (Swapping)
-      else {
-        if (!isRightClick) {
-          const temp = { ...currentSlot };
-          list[index] = { ...cursorItem };
-          setCursorItem(temp);
-          updateList(list);
-        }
-      }
-    }
+    const [pick, place] = modesFor(e);
+    const result = tapSlot(list[index], cursorItem, pick, place);
+    if (result.slot === list[index] && result.cursor === cursorItem) return;
+    list[index] = result.slot;
+    updateList(list);
+    setCursorItem(result.cursor);
+    if (result.cursor) setHoveredItem(ITEM_REGISTRY[result.cursor.itemId] ?? null);
   };
 
-  // Handle slot clicks inside 2x2 Crafting Grid
-  const handleCraftingSlotClick = (e: React.MouseEvent, index: number) => {
+  // Handle slot clicks inside the crafting grid
+  const handleCraftingSlotClick = (e: React.PointerEvent, index: number) => {
     e.preventDefault();
-    const isRightClick = e.button === 2;
+    const [pick, place] = modesFor(e);
+    const result = tapSlot(craftingGrid[index], cursorItem, pick, place);
+    if (result.slot === craftingGrid[index] && result.cursor === cursorItem) return;
     const gridCopy = [...craftingGrid];
-    const currentSlot = gridCopy[index];
-
-    if (!cursorItem || cursorItem.itemId === "") {
-      if (currentSlot.itemId === "") return;
-      if (isRightClick && currentSlot.count > 1) {
-        const takeCount = Math.ceil(currentSlot.count / 2);
-        const keepCount = currentSlot.count - takeCount;
-        setCursorItem({ ...currentSlot, count: takeCount });
-        gridCopy[index] = { ...currentSlot, count: keepCount };
-      } else {
-        setCursorItem({ ...currentSlot });
-        gridCopy[index] = { itemId: "", count: 0 };
-      }
-      setCraftingGrid(gridCopy);
-    } else {
-      if (currentSlot.itemId === "") {
-        if (isRightClick) {
-          gridCopy[index] = { ...cursorItem, count: 1 };
-          if (cursorItem.count > 1) {
-            setCursorItem({ ...cursorItem, count: cursorItem.count - 1 });
-          } else {
-            setCursorItem(null);
-          }
-        } else {
-          gridCopy[index] = { ...cursorItem };
-          setCursorItem(null);
-        }
-        setCraftingGrid(gridCopy);
-      } else if (currentSlot.itemId === cursorItem.itemId) {
-        const maxStack = ITEM_REGISTRY[cursorItem.itemId]?.maxStack || 64;
-        if (isRightClick) {
-          if (currentSlot.count < maxStack) {
-            gridCopy[index].count += 1;
-            if (cursorItem.count > 1) {
-              setCursorItem({ ...cursorItem, count: cursorItem.count - 1 });
-            } else {
-              setCursorItem(null);
-            }
-            setCraftingGrid(gridCopy);
-          }
-        } else {
-          const spaceLeft = maxStack - currentSlot.count;
-          if (spaceLeft > 0) {
-            const transfer = Math.min(spaceLeft, cursorItem.count);
-            gridCopy[index].count += transfer;
-            if (cursorItem.count > transfer) {
-              setCursorItem({ ...cursorItem, count: cursorItem.count - transfer });
-            } else {
-              setCursorItem(null);
-            }
-            setCraftingGrid(gridCopy);
-          }
-        }
-      } else {
-        if (!isRightClick) {
-          const temp = { ...currentSlot };
-          gridCopy[index] = { ...cursorItem };
-          setCursorItem(temp);
-          setCraftingGrid(gridCopy);
-        }
-      }
-    }
+    gridCopy[index] = result.slot;
+    setCraftingGrid(gridCopy);
+    setCursorItem(result.cursor);
   };
 
   // Handle clicking the craft result preview slot
-  const handleCraftingResultClick = (e: React.MouseEvent) => {
+  const handleCraftingResultClick = (e: React.PointerEvent) => {
     e.preventDefault();
     if (!craftResult || !craftResultDef) return;
 
@@ -492,6 +358,27 @@ export default function InventoryMenu({
             <span>• {app.ui("recipePick")}</span>
             <span>• {app.ui("recipeTorch")}</span>
           </div>
+        </div>
+
+        {/* Take switch: how much one tap moves. Touch screens have no right-click. */}
+        <div className="flex items-center gap-2" role="radiogroup" aria-label={app.ui("take")}>
+          <span className="text-xs font-bold uppercase tracking-wider text-slate-400">{app.ui("take")}</span>
+          {(["all", "half", "one"] as const).map((m) => (
+            <button
+              key={m}
+              type="button"
+              role="radio"
+              aria-checked={takeMode === m}
+              onClick={() => setTakeMode(m)}
+              className={`min-h-11 rounded-lg border px-4 text-sm font-bold ${
+                takeMode === m
+                  ? "border-emerald-400 bg-emerald-500/20 text-emerald-200"
+                  : "border-slate-700 bg-slate-900 text-slate-300"
+              }`}
+            >
+              {app.ui(m === "all" ? "takeAll" : m === "half" ? "takeHalf" : "takeOne")}
+            </button>
+          ))}
         </div>
 
         {/* Content Section: 27 Slots Grid */}

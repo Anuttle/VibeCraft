@@ -59,11 +59,13 @@ Touch controls:
 | Joystick (left) | Walk |
 | Drag on the screen | Look around |
 | ✋ / 💬 button | Use a station or talk to a character |
-| ⛏ / 🧱 buttons | Break or place blocks |
+| ⛏ / 🧱 buttons | Break (hold ⛏ down) or place blocks |
 | ⬆ | Jump |
-| 🎒 | Open the bag |
+| 🎒 | Open the bag. **Take: All / Half / One** sets how much each tap moves, so stacks can be split |
 
 With a keyboard, the controls are W A S D to walk, the mouse to look, F to use or talk, E for the bag and Esc to pause.
+
+On an iPad with a trackpad or mouse, drag to look around, hold the click to break a block, and right-click (two-finger click) to place one.
 
 ## Students and progress
 

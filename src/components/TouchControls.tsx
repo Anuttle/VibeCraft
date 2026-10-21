@@ -123,7 +123,12 @@ export default function TouchControls({ onOpenBag, onPause }: TouchControlsProps
         <ActionButton label={app.ui("placeBlock")} onPress={() => gameActions.secondary?.()} className="h-20 w-20">
           🧱
         </ActionButton>
-        <ActionButton label={app.ui("breakBlock")} onPress={() => gameActions.primary?.()} className="h-20 w-20">
+        <ActionButton
+          label={app.ui("breakBlock")}
+          onPress={() => gameActions.breakStart?.()}
+          onRelease={() => gameActions.breakStop?.()}
+          className="h-20 w-20"
+        >
           ⛏
         </ActionButton>
         <div />

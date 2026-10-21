@@ -1,9 +1,9 @@
 import { useMemo, useState } from "react";
 import { useApp } from "../../AppContext";
-import { seededShuffle } from "../../game/typesetting";
+import { shuffleOutOfOrder } from "../../game/typesetting";
 import { playSoundEffect } from "../../utils/mobs";
 import MinigameFrame from "./MinigameFrame";
-import { Feedback, FinishPanel, Panel } from "./shared";
+import { Feedback, FinishPanel, Panel, useShuffleSeed } from "./shared";
 
 interface OrderPickerProps {
   /** In the correct order. */
@@ -16,9 +16,10 @@ interface OrderPickerProps {
 /** Tap items in the right order. Shared by the sequence activity and quiz "order" items. */
 export function OrderPicker({ items, hintAfter, onDone }: OrderPickerProps) {
   const app = useApp();
+  const seed = useShuffleSeed();
   const shuffled = useMemo(
-    () => seededShuffle(items.map((it, i) => ({ ...it, i })), items.map((i) => i.text).join("|")),
-    [items]
+    () => shuffleOutOfOrder(items.map((it, i) => ({ ...it, i })), items.map((i) => i.text).join("|") + seed),
+    [items, seed]
   );
   const [placed, setPlaced] = useState<number[]>([]);
   const [misses, setMisses] = useState(0);

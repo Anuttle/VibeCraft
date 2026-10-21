@@ -16,11 +16,14 @@ export const touchInput = {
 
 /** Actions the game canvas registers so on-screen buttons can trigger them. */
 export const gameActions: {
-  primary: (() => void) | null;
+  /** Start and stop holding to break the block under the crosshair. */
+  breakStart: (() => void) | null;
+  breakStop: (() => void) | null;
   secondary: (() => void) | null;
   unstuck: (() => void) | null;
 } = {
-  primary: null,
+  breakStart: null,
+  breakStop: null,
   secondary: null,
   unstuck: null,
 };

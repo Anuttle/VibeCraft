@@ -79,3 +79,47 @@ export function wearTool(inv: PlayerInventory, slotIndex: number): PlayerInvento
   hotbar[slotIndex] = next <= 0 ? { itemId: "", count: 0 } : { ...slot, durability: next };
   return { ...inv, hotbar };
 }
+
+/** How much a tap on a slot moves: the whole stack, half of it, or one item. */
+export type TakeMode = "all" | "half" | "one";
+
+const EMPTY: InventorySlot = { itemId: "", count: 0 };
+
+const portion = (n: number, mode: TakeMode) => (mode === "all" ? n : mode === "half" ? Math.ceil(n / 2) : 1);
+
+/**
+ * One tap on a slot while `cursor` holds what the player has lifted. Picking up
+ * takes `pickMode` from the slot; putting down drops `placeMode` from the cursor
+ * (merging into a matching stack, up to its limit). A different item swaps
+ * places, but only when moving whole stacks. Returns the new slot and cursor.
+ */
+export function tapSlot(
+  slot: InventorySlot,
+  cursor: InventorySlot | null,
+  pickMode: TakeMode,
+  placeMode: TakeMode
+): { slot: InventorySlot; cursor: InventorySlot | null } {
+  const holding = cursor && cursor.itemId !== "" && cursor.count > 0 ? cursor : null;
+
+  if (!holding) {
+    if (slot.itemId === "" || slot.count <= 0) return { slot, cursor: null };
+    const take = portion(slot.count, pickMode);
+    const left = slot.count - take;
+    return { slot: left > 0 ? { ...slot, count: left } : { ...EMPTY }, cursor: { ...slot, count: take } };
+  }
+
+  if (slot.itemId === "" || slot.itemId === holding.itemId) {
+    const maxStack = ITEM_REGISTRY[holding.itemId]?.maxStack ?? 64;
+    const base = slot.itemId === "" ? 0 : slot.count;
+    const put = Math.min(portion(holding.count, placeMode), maxStack - base);
+    if (put <= 0) return { slot, cursor: holding };
+    const left = holding.count - put;
+    return {
+      slot: { ...holding, count: base + put, durability: slot.itemId === "" ? holding.durability : slot.durability },
+      cursor: left > 0 ? { ...holding, count: left } : null,
+    };
+  }
+
+  if (placeMode !== "all") return { slot, cursor: holding };
+  return { slot: { ...holding }, cursor: { ...slot } };
+}

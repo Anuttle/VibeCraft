@@ -479,20 +479,28 @@ export default function App() {
               </button>
             )}
 
-            {journalOpen && journalConfig && (
-              <QuizGame
-                title={journalCheckLabel(lang)}
-                icon="📖"
-                cfg={journalConfig}
-                onComplete={finishJournal}
-                onClose={() => {
-                  setJournalDismissed(true);
-                  resumeFromClick();
-                }}
-              />
+            {/* Closing the journal only hides it, so reopening keeps the answers given so far. */}
+            {journalDue && journalConfig && (
+              <div className={journalOpen ? undefined : "hidden"}>
+                <QuizGame
+                  key={chapterId}
+                  title={journalCheckLabel(lang)}
+                  icon="📖"
+                  cfg={journalConfig}
+                  onComplete={finishJournal}
+                  onClose={() => {
+                    narrator.stop();
+                    setJournalDismissed(true);
+                    resumeFromClick();
+                  }}
+                />
+              </div>
             )}
             {journalDue && journalDismissed && inputEnabled && (
-              <div className="pointer-events-none absolute inset-x-0 bottom-32 z-30 flex justify-center px-4">
+              // Sits above the Use / Talk prompt when that is showing, instead of on top of it.
+              <div
+                className={`pointer-events-none absolute inset-x-0 z-30 flex justify-center px-4 ${focus ? "bottom-56" : "bottom-32"}`}
+              >
                 <button
                   type="button"
                   onClick={() => setJournalDismissed(false)}

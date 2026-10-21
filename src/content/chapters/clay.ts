@@ -416,10 +416,13 @@ export const KILN: PerBandLang<HoldConfig> = {
 // Distractors are look-alikes: 出~山, 永/木~水, 口~中, 太/犬~大, 目~日, 土/止~上, 用~月, 存~在.
 // ---------------------------------------------------------------------------
 
-const FRAME_K2: TypesetConfig = { lines: ["山水"], caseSplit: false, distractors: "出永", hintAfter: 1, proof: false, shuffle: false, evenSpacing: false };
-const FRAME_35: TypesetConfig = { lines: ["山中水"], caseSplit: false, distractors: "出口永", hintAfter: 3, proof: false, shuffle: false, evenSpacing: false };
-const FRAME_68: TypesetConfig = { lines: ["大山大水"], caseSplit: false, distractors: "太犬出永", hintAfter: null, proof: false, shuffle: false, evenSpacing: false };
-const FRAME_912: TypesetConfig = { lines: ["日出山上", "月在水中"], caseSplit: false, distractors: "目土止用永存", hintAfter: null, proof: false, shuffle: true, evenSpacing: false };
+// Every band shuffles the tray and prints each sort's readable face beneath it:
+// a mirrored Chinese character can look like a different character entirely.
+const CLAY_TRAY = { caseSplit: false, proof: false, shuffle: true, evenSpacing: false, showFace: true } as const;
+const FRAME_K2: TypesetConfig = { ...CLAY_TRAY, lines: ["山水"], distractors: "出永", hintAfter: 1 };
+const FRAME_35: TypesetConfig = { ...CLAY_TRAY, lines: ["山中水"], distractors: "出口永", hintAfter: 3 };
+const FRAME_68: TypesetConfig = { ...CLAY_TRAY, lines: ["大山大水"], distractors: "太犬出永", hintAfter: null };
+const FRAME_912: TypesetConfig = { ...CLAY_TRAY, lines: ["日出山上", "月在水中"], distractors: "目土止用永存", hintAfter: null };
 
 // Clay sorts, not metal: each band gets its own instruction with the meaning.
 const frameText = (cfg: TypesetConfig, en: string, es: string): Record<Lang, TypesetConfig> => ({
@@ -440,8 +443,8 @@ export const FRAME: Record<Band, Record<Lang, TypesetConfig>> = {
   ),
   "6-8": frameText(
     FRAME_68,
-    "Set the clay sorts into the iron frame: 大山大水, \"great mountains, great waters.\" Match each mirrored sort to the character above.",
-    "Coloca los tipos de arcilla en el marco de hierro: 大山大水, «grandes montañas, grandes aguas». Busca cada tipo de espejo que corresponde al carácter de arriba."
+    "Set the clay sorts into the iron frame: 大山大水, \"great mountains, great waters.\" Match each mirrored sort to the character above; its printed face is shown under it.",
+    "Coloca los tipos de arcilla en el marco de hierro: 大山大水, «grandes montañas, grandes aguas». Busca cada tipo de espejo que corresponde al carácter de arriba; debajo se ve cómo queda impreso."
   ),
   "9-12": frameText(
     FRAME_912,
