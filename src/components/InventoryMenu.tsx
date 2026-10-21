@@ -4,6 +4,7 @@ import { ITEM_REGISTRY, Item, checkCraftingRecipe } from "../utils/items";
 import { X, Trash2, ArrowRight } from "lucide-react";
 import { useApp } from "../AppContext";
 import { TakeMode, tapSlot } from "../game/inventory";
+import ItemIcon from "./ItemIcon";
 
 // Last pointer position, so a held item appears under the finger right away on
 // touch screens (there is no hover movement before the first tap).
@@ -21,6 +22,8 @@ interface InventoryMenuProps {
   onCrafted?: (itemId: string, count: number) => void;
   /** Shown at the top of the panel, e.g. the current goal. */
   banner?: React.ReactNode;
+  /** Free build: items a tap hands out as a full stack. */
+  supply?: string[];
 }
 
 export default function InventoryMenu({
@@ -34,6 +37,7 @@ export default function InventoryMenu({
   isCraftingTableOpen = false,
   onCrafted,
   banner,
+  supply,
 }: InventoryMenuProps) {
   const app = useApp();
   // Cursor item holds whatever slot the user has "lifted"
@@ -170,6 +174,15 @@ export default function InventoryMenu({
     );
   };
 
+  // Free-build supply: a tap lifts a full stack (or tops up the same item).
+  const takeFromSupply = (itemId: string) => {
+    const def = ITEM_REGISTRY[itemId];
+    if (!def) return;
+    if (cursorItem && cursorItem.itemId !== "" && cursorItem.itemId !== itemId) return;
+    setCursorItem({ itemId, count: def.maxStack || 64 });
+    setHoveredItem(def);
+  };
+
   // Drop cursor item to ground
   const handleDropCursorItem = () => {
     if (cursorItem && cursorItem.itemId !== "") {
@@ -202,11 +215,9 @@ export default function InventoryMenu({
               className="absolute inset-1 rounded-md opacity-10" 
               style={{ backgroundColor: item.color }}
             />
-            <span className="text-xl filter drop-shadow group-hover:scale-110 transition-transform duration-100">
-              {item.emoji}
-            </span>
+            <ItemIcon item={item} className="relative text-xl drop-shadow group-hover:scale-110 transition-transform duration-100" />
             {slot.count > 1 && (
-              <span className="absolute bottom-1 right-1 bg-slate-900/90 border border-slate-800 text-[10px] text-emerald-400 font-mono font-bold px-1 rounded min-w-[16px] text-center shadow-sm">
+              <span className="absolute bottom-1 right-1 bg-slate-900/90 border border-slate-800 text-xs text-stone-100 font-bold px-1 rounded min-w-[16px] text-center shadow-sm">
                 {slot.count}
               </span>
             )}
@@ -234,16 +245,16 @@ export default function InventoryMenu({
   };
 
   return (
-    <div className="absolute inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-md pointer-events-auto">
+    <div className="absolute inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 pointer-events-auto">
       {/* Inventory Panel Container */}
       <div 
         onContextMenu={(e) => e.preventDefault()}
-        className="relative bg-stone-900/95 border border-stone-700 rounded-2xl w-full max-w-lg max-h-[calc(100dvh-2rem)] overflow-y-auto p-5 shadow-2xl flex flex-col gap-4 text-slate-100 font-sans"
+        className="relative bg-stone-900/95 border border-stone-700 rounded-lg w-full max-w-lg max-h-[calc(100dvh-2rem)] overflow-y-auto p-5 shadow-2xl flex flex-col gap-4 text-slate-100 font-sans"
       >
         {/* Close Button & Title */}
         <div className="flex justify-between items-center pb-3 border-b border-slate-800">
           <div className="flex flex-col">
-            <h2 className="text-lg font-extrabold tracking-wide text-slate-100 flex items-center gap-2">
+            <h2 className="text-lg font-extrabold text-slate-100 flex items-center gap-2">
               {is3x3Mode ? `🪵 ${app.ui("craftingTableTitle")}` : `🎒 ${app.ui("bagTitle")}`}
             </h2>
           </div>
@@ -259,19 +270,19 @@ export default function InventoryMenu({
         {banner}
 
         {/* Crafting Grid Section */}
-        <div className="bg-slate-950/60 border border-slate-800/80 rounded-xl p-3 flex items-center justify-between">
+        <div className="bg-slate-950/60 border border-slate-800/80 rounded-md p-3 flex items-center justify-between">
           <div className="flex flex-col gap-1.5">
             <div className="flex items-center justify-between gap-2">
-              <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider font-mono">
+              <span className="text-xs font-bold text-slate-400">
                 {app.ui("craft")}
               </span>
-              <div className="flex items-center gap-1 bg-slate-900 border border-slate-800 rounded-lg p-0.5 text-[9px] font-mono">
+              <div className="flex items-center gap-1 bg-slate-900 border border-slate-800 rounded-lg p-0.5 text-xs">
                 <button
                   type="button"
                   onClick={() => setIs3x3Mode(false)}
                   className={`px-2 py-0.5 rounded transition-colors ${
                     !is3x3Mode
-                      ? "bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/40"
+                      ? "bg-amber-500/20 text-amber-200 font-bold border border-amber-500/40"
                       : "text-slate-400 hover:text-slate-200"
                   }`}
                 >
@@ -282,7 +293,7 @@ export default function InventoryMenu({
                   onClick={() => setIs3x3Mode(true)}
                   className={`px-2 py-0.5 rounded transition-colors ${
                     is3x3Mode
-                      ? "bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/40"
+                      ? "bg-amber-500/20 text-amber-200 font-bold border border-amber-500/40"
                       : "text-slate-400 hover:text-slate-200"
                   }`}
                 >
@@ -310,9 +321,9 @@ export default function InventoryMenu({
                   >
                     {item && (
                       <div className="relative flex items-center justify-center w-full h-full">
-                        <span className="text-lg">{item.emoji}</span>
+                        <ItemIcon item={item} className="text-lg" />
                         {slot.count > 1 && (
-                          <span className="absolute bottom-0.5 right-0.5 bg-slate-950 text-[9px] text-emerald-400 font-mono font-bold px-0.5 rounded">
+                          <span className="absolute bottom-0.5 right-0.5 bg-slate-950 text-xs text-stone-100 font-bold px-0.5 rounded">
                             {slot.count}
                           </span>
                         )}
@@ -327,21 +338,21 @@ export default function InventoryMenu({
           <div className="flex items-center gap-3">
             <ArrowRight className="w-5 h-5 text-slate-600" />
             <div className="flex flex-col items-center gap-1">
-              <span className="text-[9px] uppercase font-bold text-emerald-400 tracking-wider font-mono">{app.ui("result")}</span>
+              <span className="text-xs font-bold text-stone-100">{app.ui("result")}</span>
               <div
                 onPointerDown={handleCraftingResultClick}
                 onPointerEnter={() => craftResultDef && setHoveredItem(craftResultDef)}
                 
-                className={`w-14 h-14 rounded-xl border flex items-center justify-center select-none transition-all cursor-pointer ${
+                className={`w-14 h-14 rounded-md border flex items-center justify-center select-none transition-all cursor-pointer ${
                   craftResultDef
-                    ? "bg-emerald-950/40 border-emerald-500/50 shadow-lg shadow-emerald-500/10 scale-105"
+                    ? "bg-amber-950/40 border-amber-500/50 shadow-lg scale-105"
                     : "bg-slate-950/40 border-slate-800/50 opacity-40 cursor-not-allowed"
                 }`}
               >
                 {craftResultDef && (
                   <div className="relative flex items-center justify-center w-full h-full">
-                    <span className="text-2xl filter drop-shadow">{craftResultDef.emoji}</span>
-                    <span className="absolute bottom-1 right-1 bg-slate-950 border border-emerald-500/40 text-[10px] text-emerald-300 font-mono font-black px-1 rounded shadow">
+                    <ItemIcon item={craftResultDef} className="text-2xl drop-shadow" />
+                    <span className="absolute bottom-1 right-1 bg-slate-950 border border-amber-500/40 text-xs text-amber-200 font-black px-1 rounded shadow">
                       {craftResult?.count}
                     </span>
                   </div>
@@ -350,7 +361,7 @@ export default function InventoryMenu({
             </div>
           </div>
 
-          <div className="text-[10px] text-slate-500 font-mono flex flex-col gap-0.5 max-w-[160px] border-l border-slate-800/60 pl-3">
+          <div className="text-xs text-slate-500 flex flex-col gap-0.5 max-w-[160px] border-l border-slate-800/60 pl-3">
             <span className="text-slate-300 font-bold">{app.ui("recipes")}</span>
             <span>• {app.ui("recipePlanks")}</span>
             <span>• {app.ui("recipeSticks")}</span>
@@ -360,9 +371,34 @@ export default function InventoryMenu({
           </div>
         </div>
 
+        {supply && supply.length > 0 && (
+          <div>
+            <h3 className="text-xs font-bold text-slate-400 mb-1.5">{app.ui("supply")}</h3>
+            <p className="mb-1.5 text-xs text-slate-400">{app.ui("supplyNote")}</p>
+            <div className="grid grid-cols-9 gap-1.5 p-2.5 bg-slate-950/40 border border-slate-800/50 rounded-md">
+              {supply.map((id) => {
+                const item = ITEM_REGISTRY[id];
+                if (!item) return null;
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    aria-label={app.itemName(id, item.name)}
+                    onClick={() => takeFromSupply(id)}
+                    className="relative w-12 h-12 rounded-lg bg-slate-950/80 border border-slate-800 flex items-center justify-center text-xl"
+                  >
+                    <span className="absolute inset-1 rounded-md opacity-20" style={{ backgroundColor: item.color }} />
+                    <ItemIcon item={item} className="relative" />
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {/* Take switch: how much one tap moves. Touch screens have no right-click. */}
         <div className="flex items-center gap-2" role="radiogroup" aria-label={app.ui("take")}>
-          <span className="text-xs font-bold uppercase tracking-wider text-slate-400">{app.ui("take")}</span>
+          <span className="text-xs font-bold text-slate-400">{app.ui("take")}</span>
           {(["all", "half", "one"] as const).map((m) => (
             <button
               key={m}
@@ -372,7 +408,7 @@ export default function InventoryMenu({
               onClick={() => setTakeMode(m)}
               className={`min-h-11 rounded-lg border px-4 text-sm font-bold ${
                 takeMode === m
-                  ? "border-emerald-400 bg-emerald-500/20 text-emerald-200"
+                  ? "border-amber-400 bg-amber-500/20 text-amber-100"
                   : "border-slate-700 bg-slate-900 text-slate-300"
               }`}
             >
@@ -384,29 +420,29 @@ export default function InventoryMenu({
         {/* Content Section: 27 Slots Grid */}
         <div className="flex flex-col gap-3">
           <div>
-            <h3 className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-1.5 font-mono">{app.ui("bagSection")}</h3>
-            <div className="grid grid-cols-9 gap-1.5 p-2.5 bg-slate-950/40 border border-slate-800/50 rounded-xl">
+            <h3 className="text-xs font-bold text-slate-400 mb-1.5">{app.ui("bagSection")}</h3>
+            <div className="grid grid-cols-9 gap-1.5 p-2.5 bg-slate-950/40 border border-slate-800/50 rounded-md">
               {Array.from({ length: 27 }).map((_, i) => renderSlot("inventory", i))}
             </div>
           </div>
 
           {/* Hotbar Section */}
           <div>
-            <h3 className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-1.5 font-mono">{app.ui("hotbarSection")}</h3>
-            <div className="grid grid-cols-9 gap-1.5 p-2.5 bg-slate-950/60 border border-emerald-500/15 rounded-xl shadow-lg shadow-emerald-500/5">
+            <h3 className="text-xs font-bold text-slate-400 mb-1.5">{app.ui("hotbarSection")}</h3>
+            <div className="grid grid-cols-9 gap-1.5 p-2.5 bg-slate-950/60 border border-amber-500/15 rounded-md shadow-lg">
               {Array.from({ length: 9 }).map((_, i) => renderSlot("hotbar", i))}
             </div>
           </div>
         </div>
 
         {/* Bottom Panel: Interactive Info & Trash Area */}
-        <div className="flex justify-between items-center bg-slate-950/40 border border-slate-800/40 rounded-xl p-3 text-xs">
+        <div className="flex justify-between items-center bg-slate-950/40 border border-slate-800/40 rounded-md p-3 text-xs">
           {/* Hovered item information */}
           <div className="flex-1 flex items-center gap-3 pr-4">
             {hoveredItem ? (
               <>
                 <div className="w-9 h-9 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center text-lg">
-                  {hoveredItem.emoji}
+                  <ItemIcon item={hoveredItem} />
                 </div>
                 <div>
                   <h4 className="font-bold text-slate-200">{app.itemName(hoveredItem.id, hoveredItem.name)}</h4>
@@ -427,7 +463,7 @@ export default function InventoryMenu({
             }`}
           >
             <Trash2 className="w-4 h-4 shrink-0" />
-            <span className="font-bold font-mono text-[10px] uppercase tracking-wide">
+            <span className="font-bold text-xs">
               {cursorItem ? app.ui("drop", { n: cursorItem.count }) : app.ui("dropSlot")}
             </span>
           </button>
@@ -468,10 +504,10 @@ function CursorTracker({ item, count }: { item: Item; count: number }) {
         top: coords.y - 24,
       }}
     >
-      <div className="relative w-11 h-11 bg-slate-900/90 border-2 border-emerald-400 rounded-lg shadow-2xl flex items-center justify-center">
-        <span className="text-2xl">{item.emoji}</span>
+      <div className="relative w-11 h-11 bg-slate-900/90 border-2 border-amber-400 rounded-lg shadow-2xl flex items-center justify-center">
+        <ItemIcon item={item} className="text-2xl" />
         {count > 1 && (
-          <span className="absolute bottom-0.5 right-1 bg-slate-950 text-[10px] text-emerald-400 font-mono font-bold px-1 rounded shadow">
+          <span className="absolute bottom-0.5 right-1 bg-slate-950 text-xs text-stone-100 font-bold px-1 rounded shadow">
             {count}
           </span>
         )}

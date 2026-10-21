@@ -47,7 +47,7 @@ export function OrderPicker({ items, hintAfter, onDone }: OrderPickerProps) {
     <div className="flex flex-col gap-4">
       <ol className="flex flex-col gap-2">
         {placed.map((i, n) => (
-          <li key={i} className="flex items-center gap-3 rounded-xl border border-emerald-700/60 bg-emerald-950/40 p-3 text-lg text-stone-100">
+          <li key={i} className="flex items-center gap-3 rounded-md border border-emerald-700/60 bg-emerald-950/40 p-3 text-lg text-stone-100">
             <span className="font-mono text-emerald-300">{n + 1}.</span>
             {items[i].emoji && <span aria-hidden>{items[i].emoji}</span>}
             {items[i].text}
@@ -63,7 +63,7 @@ export function OrderPicker({ items, hintAfter, onDone }: OrderPickerProps) {
               key={it.i}
               type="button"
               onClick={() => tap(it.i)}
-              className={`flex min-h-16 items-center gap-3 rounded-xl border border-stone-600 bg-stone-800 p-3 text-left text-lg text-stone-100 active:scale-[0.98] ${
+              className={`flex min-h-16 items-center gap-3 rounded-md border border-stone-600 bg-stone-800 p-3 text-left text-lg text-stone-100 active:scale-[0.98] ${
                 hintAfter !== null && misses >= hintAfter && it.i === next ? "animate-pulse ring-4 ring-amber-400" : ""
               }`}
             >

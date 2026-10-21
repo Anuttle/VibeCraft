@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import * as THREE from "three";
-import { BlockType, InventorySlot, STATION_BLOCKS } from "../types";
+import { BLOCK_CONFIGS, BlockType, InventorySlot, STATION_BLOCKS } from "../types";
 import { TerrainGenerator, CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z, SEA_LEVEL } from "../utils/terrain";
 import { buildChunkGeometry } from "../utils/meshing";
 import { ITEM_REGISTRY, BLOCK_DROP_TABLE, breakSeconds } from "../utils/items";
@@ -8,6 +8,8 @@ import { MobEntity, MobType, createPigMesh, playSoundEffect } from "../utils/mob
 import { InputMode, gameActions, resetTouchInput, touchInput } from "../game/input";
 import { GameEvent } from "../game/quest";
 import { Interactable, WorldSetup } from "../game/world";
+import { HeldItemView } from "../utils/heldItem";
+import { BlockAtlas, loadBlockAtlas } from "../utils/textures";
 import { HumanoidMesh, createDecor, createHumanoidMesh, createNameTag } from "../utils/props";
 
 interface GameCanvasProps {
@@ -207,6 +209,9 @@ export default function GameCanvas({
     const camera = new THREE.PerspectiveCamera(75, containerRef.current.clientWidth / containerRef.current.clientHeight, 0.1, 1000);
     camera.rotation.order = "YXZ";
     cameraRef.current = camera;
+    // The camera is in the scene so the held item, its child, gets drawn.
+    scene.add(camera);
+    const heldView = new HeldItemView(camera);
 
     // 3. Renderer
     const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
@@ -279,8 +284,15 @@ export default function GameCanvas({
     };
 
     // 5. Procedural world
-    const seedId = "printing_press_" + Math.floor(Math.random() * 10000000);
+    const freeBuild = worldRef.current.freeBuild ?? null;
+    const seedId = freeBuild?.seed ?? "printing_press_" + Math.floor(Math.random() * 10000000);
     const generator = new TerrainGenerator(seedId);
+    /** Replay the free-build edits saved for one chunk onto its fresh terrain. */
+    const applyEdits = (key: string, blocks: Uint8Array) => {
+      const edits = freeBuild?.edits[key];
+      if (edits) for (const [idx, block] of Object.entries(edits)) blocks[Number(idx)] = block;
+      return blocks;
+    };
     const loadedChunks = new Map<string, Uint8Array>();
     const chunkMeshes = new Map<string, THREE.Mesh>();
 
@@ -385,7 +397,32 @@ export default function GameCanvas({
     }
 
     // Spawn point and initial facing
-    const spawnAt = setup.spawn ?? { x: 8, z: 8 };
+    // The first chunks were generated before trees and buildings were stamped;
+    // saved free-build edits go on top of all that (and before picking a spawn,
+    // so a student lands on their build rather than inside it).
+    if (freeBuild) loadedChunks.forEach((blocks, key) => applyEdits(key, blocks));
+
+    // Without a set spawn, start on the dry ground nearest the middle of the
+    // chunk, never in a lake or on a treetop.
+    const dryGround = (x: number, z: number) => {
+      const top = getLocal(x, groundTop(x, z), z);
+      return top !== BlockType.WATER && top !== BlockType.LEAVES && top !== BlockType.ICE;
+    };
+    const nearestDry = () => {
+      let best = { x: 8, z: 8 };
+      let bestDist = Infinity;
+      for (let x = 1; x < CHUNK_SIZE_X - 1; x++) {
+        for (let z = 1; z < CHUNK_SIZE_Z - 1; z++) {
+          const dist = Math.hypot(x - 8, z - 8);
+          if (dist < bestDist && dryGround(x, z)) {
+            best = { x, z };
+            bestDist = dist;
+          }
+        }
+      }
+      return best;
+    };
+    const spawnAt = setup.spawn ?? nearestDry();
     const lookAt = setup.spawn?.lookAt ?? (setup.spawnTrees ? { x: SPAWN_TREES[0][0], z: SPAWN_TREES[0][1] } : null);
     playerPosition.current.set(spawnAt.x + 0.5, groundTop(spawnAt.x, spawnAt.z) + 1 + PLAYER_HEIGHT, spawnAt.z + 0.5);
     camera.position.copy(playerPosition.current);
@@ -481,6 +518,7 @@ export default function GameCanvas({
 
     // 6. Chunk meshing
     const chunkMaterial = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85, metalness: 0.05 });
+    let atlas: BlockAtlas | null = null;
 
     const remeshChunk = (cx: number, cz: number) => {
       const key = `${cx},${cz}`;
@@ -490,7 +528,7 @@ export default function GameCanvas({
         oldMesh.geometry.dispose();
         chunkMeshes.delete(key);
       }
-      const geom = buildChunkGeometry(cx, cz, loadedChunks);
+      const geom = buildChunkGeometry(cx, cz, loadedChunks, atlas);
       if (geom) {
         const chunkMesh = new THREE.Mesh(geom, chunkMaterial);
         chunkMesh.castShadow = true;
@@ -510,6 +548,7 @@ export default function GameCanvas({
       const idx = lx + lz * CHUNK_SIZE_X + wy * CHUNK_SIZE_X * CHUNK_SIZE_Z;
       const oldType = blocks[idx];
       blocks[idx] = type;
+      freeBuild?.onEdit(`${cx},${cz}`, idx, type);
       if (oldType === BlockType.TORCH) removeTorchEntity(wx, wy, wz);
       if (type === BlockType.TORCH) createTorchEntity(wx, wy, wz);
       remeshChunk(cx, cz);
@@ -532,7 +571,7 @@ export default function GameCanvas({
       for (let cx = pChunkX - dynamicRadius; cx <= pChunkX + dynamicRadius; cx++) {
         for (let cz = pChunkZ - dynamicRadius; cz <= pChunkZ + dynamicRadius; cz++) {
           const key = `${cx},${cz}`;
-          if (!loadedChunks.has(key)) loadedChunks.set(key, generator.generateChunk(cx, cz));
+          if (!loadedChunks.has(key)) loadedChunks.set(key, applyEdits(key, generator.generateChunk(cx, cz)));
         }
       }
       for (let cx = pChunkX - dynamicRadius; cx <= pChunkX + dynamicRadius; cx++) {
@@ -551,6 +590,31 @@ export default function GameCanvas({
     };
 
     updateDynamicChunks(true);
+
+    // Textures load in the background; the world shows in plain colors until
+    // they arrive, then every chunk is rebuilt with them.
+    let disposed = false;
+    loadBlockAtlas().then((loaded) => {
+      if (disposed || !loaded) return;
+      atlas = loaded;
+      chunkMaterial.map = loaded.texture;
+      chunkMaterial.alphaTest = 0.5; // see-through pixels in leaves
+      chunkMaterial.needsUpdate = true;
+      for (const key of [...chunkMeshes.keys()]) {
+        const [cx, cz] = key.split(",").map(Number);
+        remeshChunk(cx, cz);
+      }
+      // Box faces: +x, -x, +y, -y, +z, -z
+      heldView.blockMaterial = (block) => {
+        const faces: Array<"side" | "top" | "bottom"> = ["side", "side", "top", "bottom", "side", "side"];
+        const tiles = faces.map((f) => loaded.tile(block, f));
+        if (tiles.every((t) => t === 0)) return null;
+        return tiles.map((t) =>
+          t ? new THREE.MeshLambertMaterial({ map: loaded.tileTexture(t) }) : new THREE.MeshLambertMaterial({ color: BLOCK_CONFIGS[block as BlockType]?.color })
+        );
+      };
+      heldView.refresh();
+    });
 
     for (let i = 0; i < (setup.structure ? 0 : 4); i++) {
       spawnPig(Math.floor(6 + (Math.random() - 0.5) * 20), Math.floor(6 + (Math.random() - 0.5) * 20));
@@ -576,9 +640,13 @@ export default function GameCanvas({
     const targetedBlock = () => {
       if (!cameraRef.current) return null;
       raycaster.setFromCamera(SCREEN_CENTER, cameraRef.current);
-      const hit = raycaster.intersectObjects(Array.from(chunkMeshes.values()))[0];
-      if (!hit || hit.distance > 5.5 || !hit.face) return null;
-      return hit;
+      // Look through water, so blocks under or behind it can be reached.
+      for (const hit of raycaster.intersectObjects(Array.from(chunkMeshes.values()))) {
+        if (hit.distance > 5.5 || !hit.face) return null;
+        const inside = hit.point.clone().sub(hit.face.normal.clone().multiplyScalar(0.5));
+        if (getBlockAtWorld(Math.floor(inside.x), Math.floor(inside.y), Math.floor(inside.z)) !== BlockType.WATER) return hit;
+      }
+      return null;
     };
 
     /** The block under the crosshair, if any is within reach. */
@@ -602,7 +670,7 @@ export default function GameCanvas({
     const breakBlockAt = (bx: number, by: number, bz: number) => {
       const activeItemDef = heldItem();
       const oldBlock = getBlockAtWorld(bx, by, bz);
-      if (!Number.isFinite(BLOCK_DROP_TABLE[oldBlock]?.hardness ?? 0)) return; // bedrock, water, workshop
+      if (!Number.isFinite(breakSeconds(oldBlock, activeItemDef, freeBuild !== null))) return; // bedrock, water, workshop
       setBlockAtWorld(bx, by, bz, BlockType.AIR);
       playSoundEffect("block_break");
       spawnParticleBurst(new THREE.Vector3(bx + 0.5, by + 0.5, bz + 0.5), 0x94a3b8, 10);
@@ -623,11 +691,46 @@ export default function GameCanvas({
       if (activeItemDef?.type === "tool") onToolUsedRef.current?.(activeSlotIndexRef.current);
     };
 
+    /**
+     * Tapping an animal startles it: it squeals, hops and runs off for a moment.
+     * There is no combat; animals can't be hurt. Returns whether one was tapped.
+     */
+    const ANIMAL_REACH = 4.5;
+    const startleAnimal = () => {
+      if (!cameraRef.current || mobsRef.current.length === 0) return false;
+      raycaster.setFromCamera(SCREEN_CENTER, cameraRef.current);
+      const hit = raycaster.intersectObjects(mobsRef.current.map((m) => m.group), true)[0];
+      if (!hit || hit.distance > ANIMAL_REACH) return false;
+      const block = targetedBlock();
+      if (block && block.distance < hit.distance) return false;
+      const mob = mobsRef.current.find((m) => {
+        let o: THREE.Object3D | null = hit.object;
+        while (o && o !== m.group) o = o.parent;
+        return o === m.group;
+      });
+      if (!mob) return false;
+      const away = mob.position.clone().sub(playerPosition.current).setY(0);
+      if (away.lengthSq() < 1e-6) away.set(1, 0, 0);
+      away.normalize();
+      mob.targetDirection.copy(away);
+      mob.rotationY = Math.atan2(away.x, away.z);
+      mob.scared = 2.2;
+      mob.walkTimer = 2.2;
+      if (mob.isGrounded) {
+        mob.velocity.y = 5;
+        mob.isGrounded = false;
+      }
+      playSoundEffect("oink");
+      return true;
+    };
+
     // Breaking takes a hold: the game loop counts up while the button, mouse
     // button or finger stays down, and breaks the block when time is up.
     const breaking = { held: false, key: "", elapsed: 0 };
     const startBreaking = () => {
-      if (inputEnabledRef.current) breaking.held = true;
+      if (!inputEnabledRef.current) return;
+      if (startleAnimal()) return;
+      breaking.held = true;
     };
     const stopBreaking = () => {
       breaking.held = false;
@@ -638,7 +741,7 @@ export default function GameCanvas({
 
     const updateBreaking = (delta: number) => {
       const target = breaking.held && inputEnabledRef.current ? blockUnderCrosshair() : null;
-      const seconds = target ? breakSeconds(target.block, heldItem()) : Infinity;
+      const seconds = target ? breakSeconds(target.block, heldItem(), freeBuild !== null) : Infinity;
       if (!target || !Number.isFinite(seconds)) {
         breaking.key = "";
         breaking.elapsed = 0;
@@ -696,6 +799,7 @@ export default function GameCanvas({
       setBlockAtWorld(px, py, pz, activeBlockRef.current);
       const heldId = hotbarRef.current[activeSlotIndexRef.current]?.itemId ?? "";
       onBlockPlacedRef.current();
+      heldView.punch();
       onGameEventRef.current({ type: "placed", blockItemId: heldId });
     };
 
@@ -722,10 +826,18 @@ export default function GameCanvas({
         unstuck();
         if (yaw !== undefined && cameraRef.current) cameraRef.current.rotation.y = yaw;
       };
+      (window as unknown as { __ppLook?: (yaw: number, pitch: number) => void }).__ppLook = (yaw, pitch) => {
+        if (!cameraRef.current) return;
+        cameraRef.current.rotation.y = yaw;
+        cameraRef.current.rotation.x = pitch;
+      };
       (window as unknown as { __ppTarget?: () => unknown }).__ppTarget = () => ({
         target: blockUnderCrosshair(),
         pitch: cameraRef.current?.rotation.x ?? 0,
         breaking: { ...breaking },
+        player: playerPosition.current.toArray(),
+        held: hotbarRef.current[activeSlotIndexRef.current]?.itemId ?? "",
+        activeBlock: activeBlockRef.current,
       });
     }
 
@@ -1073,6 +1185,7 @@ export default function GameCanvas({
         }
 
         mob.walkTimer -= delta;
+        if (mob.scared) mob.scared = Math.max(0, mob.scared - delta);
         if (mob.walkTimer <= 0) {
           mob.walkTimer = 2.5 + Math.random() * 3.5;
           if (Math.random() < 0.7) {
@@ -1083,7 +1196,7 @@ export default function GameCanvas({
           }
         }
 
-        const mobSpeed = 1.8;
+        const mobSpeed = mob.scared ? 4.5 : 1.8;
         mob.velocity.x = mob.targetDirection.x * mobSpeed;
         mob.velocity.z = mob.targetDirection.z * mobSpeed;
         mob.velocity.y -= GRAVITY * delta;
@@ -1260,6 +1373,11 @@ export default function GameCanvas({
       }
 
       updateBreaking(delta);
+      heldView.update(hotbarRef.current[activeSlotIndexRef.current]?.itemId ?? "", delta, {
+        touch: inputModeRef.current === "touch",
+        walking: enabled && moveDirection.lengthSq() > 0 && isGrounded.current,
+        breaking: breaking.held && crackMesh.visible,
+      });
 
       // Outline the block under the crosshair
       if (enabled) {
@@ -1283,6 +1401,7 @@ export default function GameCanvas({
     animate();
 
     return () => {
+      disposed = true;
       window.removeEventListener("mousedown", handleMouseDown);
       window.removeEventListener("mouseup", handleMouseUp);
       window.removeEventListener("keydown", handleKeyDown);

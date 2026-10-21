@@ -65,7 +65,7 @@ export default function MapGame({ cfg, title, icon, onComplete, onClose }: MapGa
   return (
     <MinigameFrame title={title} icon={icon} instruction={done ? cfg.success : cfg.instruction} onClose={onClose}>
       <p className="text-lg font-bold text-amber-200">{app.ui("citiesReached", { n: reached.length, total: cfg.cities.length })}</p>
-      <div className="w-full overflow-hidden rounded-2xl border-4 border-amber-900 bg-[#ead9b0] shadow-xl">
+      <div className="w-full overflow-hidden rounded-lg border-4 border-amber-900 bg-[#ead9b0] shadow-xl">
         <svg viewBox={`0 0 ${W} ${H}`} className="block h-auto w-full" role="img" aria-label={title}>
           {/* Grid lines */}
           {Array.from({ length: 8 }, (_, i) => (
@@ -110,7 +110,7 @@ export default function MapGame({ cfg, title, icon, onComplete, onClose }: MapGa
       </div>
       <Feedback text={feedback} />
       {last?.note && !done && (
-        <p className="rounded-xl border border-amber-700/50 bg-stone-900 p-3 text-center text-lg text-stone-100">
+        <p className="rounded-md border border-amber-700/50 bg-stone-900 p-3 text-center text-lg text-stone-100">
           <strong>
             {last.name}, c. {last.year}:
           </strong>{" "}

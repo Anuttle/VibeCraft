@@ -237,6 +237,98 @@ export const ITEM_REGISTRY: Record<string, Item> = {
     miningSpeedMultiplier: 4.0,
     maxDurability: 131,
   },
+
+  // Workshop blocks: handed out in free build, where they can be placed and broken.
+  "timber_beam": {
+    id: "timber_beam",
+    name: "Timber Beam",
+    type: "block",
+    maxStack: 64,
+    color: "#4a2c17",
+    emoji: "🪚",
+    blockType: BlockType.TIMBER,
+  },
+  "plaster": {
+    id: "plaster",
+    name: "Plaster",
+    type: "block",
+    maxStack: 64,
+    color: "#efe6d2",
+    emoji: "🪣",
+    blockType: BlockType.PLASTER,
+  },
+  "stone_brick": {
+    id: "stone_brick",
+    name: "Stone Brick",
+    type: "block",
+    maxStack: 64,
+    color: "#8b8378",
+    emoji: "🏛️",
+    blockType: BlockType.STONE_BRICK,
+  },
+  "red_lacquer": {
+    id: "red_lacquer",
+    name: "Red Lacquer",
+    type: "block",
+    maxStack: 64,
+    color: "#9f1d20",
+    emoji: "🟥",
+    blockType: BlockType.LACQUER,
+  },
+  "paper_stack": {
+    id: "paper_stack",
+    name: "Paper Stack",
+    type: "block",
+    maxStack: 64,
+    color: "#f5efe0",
+    emoji: "📄",
+    blockType: BlockType.PAPER,
+  },
+  "printing_press": {
+    id: "printing_press",
+    name: "Printing Press",
+    type: "block",
+    maxStack: 64,
+    color: "#5b3a1e",
+    emoji: "🖨️",
+    blockType: BlockType.PRESS,
+  },
+  "type_case": {
+    id: "type_case",
+    name: "Type Case",
+    type: "block",
+    maxStack: 64,
+    color: "#6b3f1d",
+    emoji: "🔠",
+    blockType: BlockType.TYPE_CASE,
+  },
+  "ink_bench": {
+    id: "ink_bench",
+    name: "Ink Bench",
+    type: "block",
+    maxStack: 64,
+    color: "#1f1a17",
+    emoji: "🖋️",
+    blockType: BlockType.INK,
+  },
+  "writing_desk": {
+    id: "writing_desk",
+    name: "Writing Desk",
+    type: "block",
+    maxStack: 64,
+    color: "#7c4a21",
+    emoji: "🪶",
+    blockType: BlockType.DESK,
+  },
+  "map_table": {
+    id: "map_table",
+    name: "Map Table",
+    type: "block",
+    maxStack: 64,
+    color: "#a37b45",
+    emoji: "🗺️",
+    blockType: BlockType.MAP_TABLE,
+  },
 };
 
 export interface BlockDrop {
@@ -363,21 +455,22 @@ export const BLOCK_DROP_TABLE: Record<BlockType, BlockDrop | null> = {
     hardness: 0.8,
   },
   // Workshop structure and stations can't be broken, so a chapter can't be
-  // made unwinnable by digging out the press.
-  [BlockType.TIMBER]: { itemId: "", minCount: 0, maxCount: 0, requiredTool: "none", hardness: Infinity },
-  [BlockType.PLASTER]: { itemId: "", minCount: 0, maxCount: 0, requiredTool: "none", hardness: Infinity },
-  [BlockType.TYPE_CASE]: { itemId: "", minCount: 0, maxCount: 0, requiredTool: "none", hardness: Infinity },
-  [BlockType.PRESS]: { itemId: "", minCount: 0, maxCount: 0, requiredTool: "none", hardness: Infinity },
-  [BlockType.PAPER]: { itemId: "", minCount: 0, maxCount: 0, requiredTool: "none", hardness: Infinity },
-  [BlockType.INK]: { itemId: "", minCount: 0, maxCount: 0, requiredTool: "none", hardness: Infinity },
-  [BlockType.STONE_BRICK]: { itemId: "", minCount: 0, maxCount: 0, requiredTool: "none", hardness: Infinity },
-  [BlockType.LACQUER]: { itemId: "", minCount: 0, maxCount: 0, requiredTool: "none", hardness: Infinity },
-  [BlockType.DESK]: { itemId: "", minCount: 0, maxCount: 0, requiredTool: "none", hardness: Infinity },
+  // made unwinnable by digging out the press. Free build allows it (see
+  // FREE_BUILD_SECONDS), and the ones with an item drop it.
+  [BlockType.TIMBER]: { itemId: "timber_beam", minCount: 1, maxCount: 1, requiredTool: "none", hardness: Infinity },
+  [BlockType.PLASTER]: { itemId: "plaster", minCount: 1, maxCount: 1, requiredTool: "none", hardness: Infinity },
+  [BlockType.TYPE_CASE]: { itemId: "type_case", minCount: 1, maxCount: 1, requiredTool: "none", hardness: Infinity },
+  [BlockType.PRESS]: { itemId: "printing_press", minCount: 1, maxCount: 1, requiredTool: "none", hardness: Infinity },
+  [BlockType.PAPER]: { itemId: "paper_stack", minCount: 1, maxCount: 1, requiredTool: "none", hardness: Infinity },
+  [BlockType.INK]: { itemId: "ink_bench", minCount: 1, maxCount: 1, requiredTool: "none", hardness: Infinity },
+  [BlockType.STONE_BRICK]: { itemId: "stone_brick", minCount: 1, maxCount: 1, requiredTool: "none", hardness: Infinity },
+  [BlockType.LACQUER]: { itemId: "red_lacquer", minCount: 1, maxCount: 1, requiredTool: "none", hardness: Infinity },
+  [BlockType.DESK]: { itemId: "writing_desk", minCount: 1, maxCount: 1, requiredTool: "none", hardness: Infinity },
   [BlockType.KILN]: { itemId: "", minCount: 0, maxCount: 0, requiredTool: "none", hardness: Infinity },
   [BlockType.FURNACE]: { itemId: "", minCount: 0, maxCount: 0, requiredTool: "none", hardness: Infinity },
   [BlockType.VAT]: { itemId: "", minCount: 0, maxCount: 0, requiredTool: "none", hardness: Infinity },
   [BlockType.COUNTER]: { itemId: "", minCount: 0, maxCount: 0, requiredTool: "none", hardness: Infinity },
-  [BlockType.MAP_TABLE]: { itemId: "", minCount: 0, maxCount: 0, requiredTool: "none", hardness: Infinity },
+  [BlockType.MAP_TABLE]: { itemId: "map_table", minCount: 1, maxCount: 1, requiredTool: "none", hardness: Infinity },
   [BlockType.CLAY]: { itemId: "", minCount: 0, maxCount: 0, requiredTool: "none", hardness: Infinity },
   [BlockType.WATER]: {
     itemId: "",
@@ -448,17 +541,24 @@ const BEST_TOOL: Partial<Record<BlockType, ToolType>> = {
   [BlockType.CRAFTING_TABLE]: "axe",
 };
 
+/** How long workshop blocks take to break in free build, where nothing is protected. */
+export const FREE_BUILD_SECONDS = 0.6;
+
 /** Bare hands on a block that needs a tool take this many times longer. */
 const WRONG_TOOL_PENALTY = 3;
 
 /**
  * Seconds of holding needed to break a block: its hardness, divided by the held
  * tool's speed when it is the right kind, and much slower by hand when the block
- * needs a tool. Infinity for blocks that can't be broken.
+ * needs a tool. Infinity for blocks that can't be broken (in free build, only
+ * bedrock and water).
  */
-export function breakSeconds(block: BlockType, held: Item | null): number {
+export function breakSeconds(block: BlockType, held: Item | null, freeBuild = false): number {
   const drop = BLOCK_DROP_TABLE[block];
   if (!drop) return Infinity;
+  if (!Number.isFinite(drop.hardness)) {
+    return freeBuild && block !== BlockType.BEDROCK && block !== BlockType.WATER ? FREE_BUILD_SECONDS : Infinity;
+  }
   const toolType = held?.toolType ?? "none";
   let seconds = drop.hardness;
   if (toolType !== "none" && toolType === (BEST_TOOL[block] ?? drop.requiredTool)) {
@@ -468,3 +568,8 @@ export function breakSeconds(block: BlockType, held: Item | null): number {
   }
   return seconds;
 }
+
+/** Every placeable block item, for the free-build supply in the bag. */
+export const SUPPLY_ITEMS: string[] = Object.values(ITEM_REGISTRY)
+  .filter((item) => item.type === "block" && item.blockType !== undefined)
+  .map((item) => item.id);

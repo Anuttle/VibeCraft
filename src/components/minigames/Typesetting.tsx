@@ -129,8 +129,8 @@ export default function Typesetting({ cfg, title, icon, onComplete, onClose }: T
               : app.ui("tsHow");
 
   const renderTray = (letters: string[], label: string | null) => (
-    <div className="rounded-2xl border border-amber-900/60 bg-amber-950/40 p-3">
-      {label && <div className="mb-2 text-sm font-bold uppercase tracking-wider text-amber-300">{label}</div>}
+    <div className="rounded-lg border border-amber-900/60 bg-amber-950/40 p-3">
+      {label && <div className="mb-2 text-sm font-bold text-amber-300">{label}</div>}
       <div className="flex flex-wrap gap-2">
         {letters.map((ch) => {
           const hinted = showHint && ch === next;
@@ -163,8 +163,8 @@ export default function Typesetting({ cfg, title, icon, onComplete, onClose }: T
   return (
     <MinigameFrame title={title} icon={icon} instruction={instruction} onClose={onClose}>
       {/* The copy to set, with the current letter marked */}
-      <section className="rounded-2xl border border-stone-700 bg-stone-100 p-4 text-stone-900">
-        <div className="mb-1 text-xs font-bold uppercase tracking-wider text-stone-500">{app.ui("tsCopy")}</div>
+      <section className="rounded-lg border border-stone-700 bg-stone-100 p-4 text-stone-900">
+        <div className="mb-1 text-xs font-bold text-stone-500">{app.ui("tsCopy")}</div>
         {cfg.lines.map((l, i) => (
           <div key={i} className={`font-serif ${isK2 ? "text-4xl" : "text-2xl"} ${i < lineIdx || phase !== "set" ? "text-stone-400" : ""}`}>
             {i === lineIdx && phase === "set"
@@ -181,14 +181,14 @@ export default function Typesetting({ cfg, title, icon, onComplete, onClose }: T
       {phase === "set" && (
         <>
           {/* The composing stick shows the line exactly as the type sits: mirrored. */}
-          <section className="rounded-2xl border border-stone-700 bg-stone-900 p-3">
-            <div className="mb-2 text-xs font-bold uppercase tracking-wider text-stone-400">{app.ui("tsStick")}</div>
+          <section className="rounded-lg border border-stone-700 bg-stone-900 p-3">
+            <div className="mb-2 text-xs font-bold text-stone-400">{app.ui("tsStick")}</div>
             <div className="flex min-h-16 flex-wrap items-center justify-end gap-1 rounded-lg bg-stone-700 p-2" style={{ transform: "scaleX(-1)" }}>
               {[...line.slice(0, pos)].map((ch, i) => (
                 <Sort key={i} ch={ch} size="sm" mirrored={false} />
               ))}
             </div>
-            <div className="mt-2 text-xs font-bold uppercase tracking-wider text-stone-400">{app.ui("tsPreview")}</div>
+            <div className="mt-2 text-xs font-bold text-stone-400">{app.ui("tsPreview")}</div>
             <div className="min-h-8 font-serif text-2xl text-stone-100">{line.slice(0, pos) || " "}</div>
           </section>
 
@@ -207,7 +207,7 @@ export default function Typesetting({ cfg, title, icon, onComplete, onClose }: T
             <button
               type="button"
               onClick={() => tap(" ")}
-              className={`mx-auto min-h-14 w-64 rounded-xl border border-stone-500 bg-stone-400 text-lg font-bold text-stone-900 active:scale-95 ${
+              className={`mx-auto min-h-14 w-64 rounded-md border border-stone-500 bg-stone-400 text-lg font-bold text-stone-900 active:scale-95 ${
                 showHint && next === " " ? "animate-pulse ring-4 ring-amber-400" : ""
               }`}
             >
@@ -218,7 +218,7 @@ export default function Typesetting({ cfg, title, icon, onComplete, onClose }: T
       )}
 
       {phase === "justify" && (
-        <section className="flex flex-col items-center gap-4 rounded-2xl border border-stone-700 bg-stone-900 p-4">
+        <section className="flex flex-col items-center gap-4 rounded-lg border border-stone-700 bg-stone-900 p-4">
           <div className="font-mono text-lg text-amber-300">
             {app.ui("lineCount", { n: lineIdx + 1, len: justified.length, width: cfg.width ?? 0 })}
           </div>
@@ -233,7 +233,7 @@ export default function Typesetting({ cfg, title, icon, onComplete, onClose }: T
                       aria-label="+"
                       onClick={() => changeGap(i, 1)}
                       disabled={remaining <= 0}
-                      className="flex h-11 w-11 items-center justify-center rounded-lg bg-amber-500 text-stone-950 disabled:opacity-30"
+                      className="flex h-11 w-11 items-center justify-center rounded-lg bg-rubric-600 text-stone-50 disabled:opacity-30"
                     >
                       <Plus className="h-5 w-5" />
                     </button>
@@ -260,7 +260,7 @@ export default function Typesetting({ cfg, title, icon, onComplete, onClose }: T
             type="button"
             disabled={remaining !== 0 || uneven}
             onClick={() => finishLine(justified)}
-            className="min-h-14 rounded-xl bg-amber-500 px-8 text-lg font-bold text-stone-950 disabled:opacity-30"
+            className="min-h-14 rounded-md bg-rubric-600 px-8 text-lg font-bold text-stone-50 disabled:opacity-30"
           >
             {app.ui("lineDone")} ✓
           </button>
@@ -268,8 +268,8 @@ export default function Typesetting({ cfg, title, icon, onComplete, onClose }: T
       )}
 
       {phase === "proof" && (
-        <section className="flex flex-col items-center gap-4 rounded-2xl border border-stone-700 bg-stone-100 p-5">
-          <div className="text-xs font-bold uppercase tracking-wider text-stone-500">{app.ui("proofTitle")}</div>
+        <section className="flex flex-col items-center gap-4 rounded-lg border border-stone-700 bg-stone-100 p-5">
+          <div className="text-xs font-bold text-stone-500">{app.ui("proofTitle")}</div>
           <div className="flex flex-wrap justify-center font-serif text-4xl text-stone-900">
             {[...proof.text].map((ch, i) =>
               ch === " " ? (
@@ -293,7 +293,7 @@ export default function Typesetting({ cfg, title, icon, onComplete, onClose }: T
       )}
 
       {phase === "done" && (
-        <section className="flex flex-col items-center gap-4 rounded-2xl border border-emerald-700/60 bg-stone-900 p-5">
+        <section className="flex flex-col items-center gap-4 rounded-lg border border-emerald-700/60 bg-stone-900 p-5">
           <div className="text-5xl" aria-hidden>
             ✅
           </div>
@@ -303,7 +303,7 @@ export default function Typesetting({ cfg, title, icon, onComplete, onClose }: T
           <button
             type="button"
             onClick={() => onComplete(done)}
-            className="min-h-14 rounded-xl bg-amber-500 px-10 text-lg font-bold text-stone-950"
+            className="min-h-14 rounded-md bg-rubric-600 px-10 text-lg font-bold text-stone-50"
           >
             {app.ui("finish")}
           </button>

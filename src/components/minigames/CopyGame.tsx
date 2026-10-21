@@ -67,7 +67,7 @@ export default function CopyGame({ cfg, title, icon, onComplete, onClose }: Copy
     <MinigameFrame title={title} icon={icon} instruction={done ? report : cfg.instruction} onClose={onClose}>
       <Panel>
         <div className="flex items-center justify-between">
-          <span className="text-xs font-bold uppercase tracking-wider text-stone-400">{app.ui("copyThis")}</span>
+          <span className="text-xs font-bold text-stone-400">{app.ui("copyThis")}</span>
           <span className="font-mono text-lg text-amber-200">⏱ {elapsed} s</span>
         </div>
         <div className="rounded-lg bg-[#efe3c4] p-4 font-serif text-3xl whitespace-pre-wrap text-stone-900">
@@ -77,7 +77,7 @@ export default function CopyGame({ cfg, title, icon, onComplete, onClose }: Copy
             </span>
           ))}
         </div>
-        <span className="text-xs font-bold uppercase tracking-wider text-stone-400">{app.ui("yourCopy")}</span>
+        <span className="text-xs font-bold text-stone-400">{app.ui("yourCopy")}</span>
         <div className="min-h-14 rounded-lg bg-[#f8f1df] p-4 font-serif text-3xl whitespace-pre-wrap text-amber-950 italic">
           {text.slice(0, pos) || " "}
         </div>
@@ -104,7 +104,7 @@ export default function CopyGame({ cfg, title, icon, onComplete, onClose }: Copy
             <button
               type="button"
               onClick={() => tap(" ")}
-              className="mx-auto min-h-14 w-64 rounded-xl border border-stone-500 bg-stone-300 text-lg font-bold text-stone-900 active:scale-95"
+              className="mx-auto min-h-14 w-64 rounded-md border border-stone-500 bg-stone-300 text-lg font-bold text-stone-900 active:scale-95"
             >
               {app.ui("space")} ␣
             </button>

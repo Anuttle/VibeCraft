@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { BlockType, BLOCK_CONFIGS } from "../types";
 import { CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z } from "./terrain";
+import type { BlockAtlas, FaceKind } from "./textures";
 
 // Face definitions
 interface Face {
@@ -90,10 +91,23 @@ const FACES: Face[] = [
   },
 ];
 
+/**
+ * Texture coordinates for a face corner, so textures stand upright on the
+ * sides and keep one orientation on top.
+ */
+const faceUv = (dir: [number, number, number], v: [number, number, number]): [number, number] => {
+  if (dir[1] !== 0) return [v[0], v[2]];
+  if (dir[0] !== 0) return [dir[0] > 0 ? 1 - v[2] : v[2], v[1]];
+  return [dir[2] > 0 ? v[0] : 1 - v[0], v[1]];
+};
+
+const faceKind = (dir: [number, number, number]): FaceKind => (dir[1] > 0 ? "top" : dir[1] < 0 ? "bottom" : "side");
+
 export function buildChunkGeometry(
   cx: number,
   cz: number,
-  loadedChunks: Map<string, Uint8Array>
+  loadedChunks: Map<string, Uint8Array>,
+  atlas: BlockAtlas | null = null
 ): THREE.BufferGeometry | null {
   const currentKey = `${cx},${cz}`;
   const currentChunk = loadedChunks.get(currentKey);
@@ -102,6 +116,7 @@ export function buildChunkGeometry(
   const positions: number[] = [];
   const normals: number[] = [];
   const colors: number[] = [];
+  const uvs: number[] = [];
   const indices: number[] = [];
 
   let vertexCount = 0;
@@ -242,6 +257,11 @@ export function buildChunkGeometry(
           // Render face if adjacent block requires it
           if (shouldRenderFace(blockType, neighborType)) {
             const vertexAos: number[] = [];
+            // A textured face is tinted white (the texture gives the color); an
+            // untextured one samples the atlas's white tile and keeps its color.
+            const tile = atlas ? atlas.tile(blockType, faceKind(face.dir)) : 0;
+            const [u0, v0, u1, v1] = atlas ? atlas.uv(tile) : [0, 0, 1, 1];
+            const tint = tile ? { r: 1, g: 1, b: 1 } : baseColor;
 
             // Add the 4 vertices of this face
             face.vertices.forEach((v) => {
@@ -259,10 +279,12 @@ export function buildChunkGeometry(
 
               // Directional shading + Smooth AO
               colors.push(
-                baseColor.r * face.shading * aoFactor,
-                baseColor.g * face.shading * aoFactor,
-                baseColor.b * face.shading * aoFactor
+                tint.r * face.shading * aoFactor,
+                tint.g * face.shading * aoFactor,
+                tint.b * face.shading * aoFactor
               );
+              const [fu, fv] = faceUv(face.dir, v);
+              uvs.push(u0 + (u1 - u0) * fu, v0 + (v1 - v0) * fv);
 
               normals.push(...face.normal);
             });
@@ -299,6 +321,7 @@ export function buildChunkGeometry(
   geometry.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
   geometry.setAttribute("normal", new THREE.Float32BufferAttribute(normals, 3));
   geometry.setAttribute("color", new THREE.Float32BufferAttribute(colors, 3));
+  geometry.setAttribute("uv", new THREE.Float32BufferAttribute(uvs, 2));
   geometry.setIndex(indices);
 
   return geometry;

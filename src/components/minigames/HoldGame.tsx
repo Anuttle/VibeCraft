@@ -88,7 +88,7 @@ export default function HoldGame({ cfg, title, icon, onComplete, onClose }: Hold
               onPointerCancel={release}
               onPointerLeave={release}
               onContextMenu={(e) => e.preventDefault()}
-              className="min-h-24 min-w-56 touch-none select-none rounded-2xl bg-amber-600 px-8 text-2xl font-bold text-stone-950 shadow-lg active:scale-95 active:bg-amber-400"
+              className="min-h-24 min-w-56 touch-none select-none rounded-lg bg-amber-600 px-8 text-2xl font-bold text-stone-950 shadow-lg active:scale-95 active:bg-amber-400"
             >
               {cfg.buttonLabel}
             </button>

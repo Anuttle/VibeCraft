@@ -26,7 +26,7 @@ export function PrimaryButton({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className={`min-h-14 rounded-xl bg-amber-500 px-8 text-lg font-bold text-stone-950 shadow-lg active:scale-95 disabled:opacity-30 ${className}`}
+      className={`min-h-14 rounded-md bg-rubric-600 px-8 text-lg font-bold text-stone-50 shadow-lg active:scale-95 disabled:opacity-30 ${className}`}
     >
       {children}
     </button>
@@ -34,7 +34,7 @@ export function PrimaryButton({
 }
 
 export function Panel({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  return <section className={`flex flex-col gap-4 rounded-2xl border border-stone-700 bg-stone-900 p-4 ${className}`}>{children}</section>;
+  return <section className={`flex flex-col gap-4 rounded-lg border border-stone-700 bg-stone-900 p-4 ${className}`}>{children}</section>;
 }
 
 export function Feedback({ text, good }: { text: string | null; good?: boolean }) {

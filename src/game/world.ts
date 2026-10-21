@@ -58,6 +58,16 @@ export interface WorldSetup {
   npcs?: NpcDef[];
   /** Spawn point (block coordinates) and the point to face. */
   spawn?: { x: number; z: number; lookAt?: { x: number; z: number } };
+  /**
+   * Free build: a fixed terrain seed, saved block edits to replay (by chunk,
+   * then block index), and a callback for each block the player changes.
+   * Workshop blocks can be broken here.
+   */
+  freeBuild?: {
+    seed: string;
+    edits: Record<string, Record<number, number>>;
+    onEdit: (chunkKey: string, index: number, block: number) => void;
+  };
 }
 
 // ---------------------------------------------------------------------------

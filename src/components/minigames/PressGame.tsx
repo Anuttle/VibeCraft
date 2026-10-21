@@ -168,7 +168,7 @@ export default function PressGame({ cfg, title, icon, lines, onComplete, onClose
       </div>
 
       {/* Side view of the press: platen above, type bed below */}
-      <section className="flex flex-col items-center gap-3 rounded-2xl border border-stone-700 bg-gradient-to-b from-amber-950/60 to-stone-900 p-4">
+      <section className="flex flex-col items-center gap-3 rounded-lg border border-stone-700 bg-gradient-to-b from-amber-950/60 to-stone-900 p-4">
         <div
           className="h-6 w-72 rounded bg-amber-900 shadow-lg transition-transform"
           style={{ transform: `translateY(${phase === "pull" || phase === "result" ? Math.min(60, pressure * 0.6) : 0}px)` }}
@@ -195,7 +195,7 @@ export default function PressGame({ cfg, title, icon, lines, onComplete, onClose
             <button
               type="button"
               onClick={dab}
-              className="flex min-h-20 min-w-40 items-center justify-center gap-2 rounded-2xl bg-stone-800 px-6 text-xl font-bold text-stone-100 shadow-lg active:scale-95"
+              className="flex min-h-20 min-w-40 items-center justify-center gap-2 rounded-lg bg-stone-800 px-6 text-xl font-bold text-stone-100 shadow-lg active:scale-95"
             >
               🟤🟤 {app.ui("dabInk")}
             </button>
@@ -204,7 +204,7 @@ export default function PressGame({ cfg, title, icon, lines, onComplete, onClose
                 type="button"
                 disabled={ink === 0}
                 onClick={() => setPhase("paper")}
-                className="min-h-20 rounded-2xl bg-amber-500 px-6 text-xl font-bold text-stone-950 disabled:opacity-30"
+                className="min-h-20 rounded-lg bg-rubric-600 px-6 text-xl font-bold text-stone-50 disabled:opacity-30"
               >
                 {app.ui("doneInking")} →
               </button>
@@ -218,7 +218,7 @@ export default function PressGame({ cfg, title, icon, lines, onComplete, onClose
           <button
             type="button"
             onClick={() => setPhase("pull")}
-            className="min-h-20 rounded-2xl bg-amber-500 px-8 text-xl font-bold text-stone-950 active:scale-95"
+            className="min-h-20 rounded-lg bg-rubric-600 px-8 text-xl font-bold text-stone-50 active:scale-95"
           >
             📄 {app.ui("placePaper")}
           </button>
@@ -238,7 +238,7 @@ export default function PressGame({ cfg, title, icon, lines, onComplete, onClose
             onPointerCancel={release}
             onPointerLeave={release}
             onContextMenu={(e) => e.preventDefault()}
-            className="min-h-24 min-w-56 touch-none select-none rounded-2xl bg-amber-600 px-8 text-2xl font-bold text-stone-950 shadow-lg active:scale-95 active:bg-amber-400"
+            className="min-h-24 min-w-56 touch-none select-none rounded-lg bg-amber-600 px-8 text-2xl font-bold text-stone-950 shadow-lg active:scale-95 active:bg-amber-400"
           >
             ⬇️ {app.ui("holdToPull")}
           </button>
@@ -251,12 +251,12 @@ export default function PressGame({ cfg, title, icon, lines, onComplete, onClose
           {finished ? (
             <>
               {cfg.showTimer && <p className="text-lg text-stone-200">{app.ui("printedIn", { n: good, s: elapsed })}</p>}
-              <button type="button" onClick={onComplete} className="min-h-14 rounded-xl bg-amber-500 px-10 text-lg font-bold text-stone-950">
+              <button type="button" onClick={onComplete} className="min-h-14 rounded-md bg-rubric-600 px-10 text-lg font-bold text-stone-50">
                 {app.ui("finish")}
               </button>
             </>
           ) : (
-            <button type="button" onClick={newSheet} className="min-h-14 rounded-xl bg-amber-500 px-8 text-lg font-bold text-stone-950">
+            <button type="button" onClick={newSheet} className="min-h-14 rounded-md bg-rubric-600 px-8 text-lg font-bold text-stone-50">
               {app.ui("printAnother")}
             </button>
           )}

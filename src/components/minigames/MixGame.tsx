@@ -82,7 +82,7 @@ export default function MixGame({ cfg, title, icon, onComplete, onClose }: MixGa
               <div className="relative h-6 flex-1 overflow-hidden rounded-full bg-stone-800">
                 <div className="absolute inset-y-0 left-0 bg-amber-400" style={{ width: `${amounts[id]}%` }} />
               </div>
-              <button type="button" aria-label="+" onClick={() => change(id, 5)} className="flex h-12 w-12 items-center justify-center rounded-lg bg-amber-500 text-stone-950">
+              <button type="button" aria-label="+" onClick={() => change(id, 5)} className="flex h-12 w-12 items-center justify-center rounded-lg bg-rubric-600 text-stone-50">
                 <Plus className="h-5 w-5" />
               </button>
               <span className="w-14 text-right font-mono text-lg text-amber-200">{amounts[id]}%</span>
@@ -96,7 +96,7 @@ export default function MixGame({ cfg, title, icon, onComplete, onClose }: MixGa
         </Panel>
       ) : (
         <Panel>
-          <p className="text-sm font-semibold uppercase tracking-wider text-stone-400">{app.ui("tapToChoose")}</p>
+          <p className="text-sm font-semibold text-stone-400">{app.ui("tapToChoose")}</p>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             {cfg.ingredients.map((ing) => {
               const on = picked.includes(ing.id);
@@ -106,7 +106,7 @@ export default function MixGame({ cfg, title, icon, onComplete, onClose }: MixGa
                   type="button"
                   onClick={() => togglePick(ing.id)}
                   aria-pressed={on}
-                  className={`flex min-h-24 flex-col items-center justify-center gap-1 rounded-2xl border-2 p-3 text-lg font-semibold active:scale-95 ${
+                  className={`flex min-h-24 flex-col items-center justify-center gap-1 rounded-lg border-2 p-3 text-lg font-semibold active:scale-95 ${
                     on ? "border-amber-400 bg-amber-500/20 text-amber-100" : "border-stone-700 bg-stone-800 text-stone-200"
                   }`}
                 >

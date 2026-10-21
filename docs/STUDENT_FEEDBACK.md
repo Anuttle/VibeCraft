@@ -88,10 +88,13 @@ Ranked by how much each problem gets in the way of the lessons. The status colum
 | 10 | Water is solid | Water counted as a solid block | You can wade through water at a slower pace and jump to swim up | Fixed (not yet tried on a device) |
 | 11 | Teacher PIN 1234 is easy to guess | Whoever opens the panel first chooses the PIN, and 1234 was allowed | Refuse easy PINs (1234, 0000, 1111 and so on), warn when the saved PIN is easy, and pause after 5 wrong tries | Fixed |
 
-### Needs a decision from the teacher
+### Feature requests: decisions and status
 
-These conflict with the original design choice to remove survival elements, or are larger projects:
-
-- **Health, hunger, combat, enemies, hunting.** Survival elements were removed on purpose so lessons stay on history. A middle ground: animals react when tapped (they run off) without combat.
-- **A free mode after all lessons are finished.** Fits the game well and rewards finishing. A medium-sized project.
-- **Textures, a restyled interface, showing the held item.** Visual polish. Showing the held item is small; textures and a restyle are large.
+| Request | Decision | Status |
+|---|---|---|
+| Show the held item on the right side of the screen | Do it | Done |
+| Animals can't be hit | No combat; animals squeal and run off when tapped | Done |
+| A free mode that unlocks after the lessons | Do it: Free Build, with a builder's supply and saved builds | Done |
+| A less "AI-generated" interface | Do it: a print-shop look with walnut, paper, brass and red ink | Done |
+| Textures for every block and item | The teacher is finding textures; the game now loads them from `public/textures` (see `docs/TEXTURES.md`) | Waiting on textures |
+| Health, hunger, combat, enemies, hunting | Not planned: survival was removed so lessons stay on history | Not planned |

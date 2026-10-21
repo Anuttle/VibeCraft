@@ -24,7 +24,7 @@ function ExplainBox({ correct, explain }: { correct: boolean | null; explain: st
   const app = useApp();
   return (
     <div
-      className={`flex items-start gap-3 rounded-xl border p-4 text-lg ${
+      className={`flex items-start gap-3 rounded-md border p-4 text-lg ${
         correct === false ? "border-amber-700 bg-amber-950/40" : "border-emerald-700 bg-emerald-950/40"
       }`}
       role="status"
@@ -65,7 +65,7 @@ function WriteBox({ value, onChange, starters }: { value: string; onChange: (v: 
         rows={4}
         placeholder={app.ui("typeAnswer")}
         lang={app.lang}
-        className="w-full rounded-xl border border-stone-600 bg-stone-950 p-3 text-lg text-stone-100 outline-none focus:border-amber-400"
+        className="w-full rounded-md border border-stone-600 bg-stone-950 p-3 text-lg text-stone-100 outline-none focus:border-amber-400"
       />
     </div>
   );
@@ -116,7 +116,7 @@ function ItemView({ item, onNext }: { item: QuizItem; onNext: (r: Response) => v
                 setChosen(i);
                 playSoundEffect(i === item.answer ? "success" : "block_break");
               }}
-              className={`flex min-h-16 items-center gap-3 rounded-xl border-2 p-3 text-left text-lg active:scale-[0.98] ${
+              className={`flex min-h-16 items-center gap-3 rounded-md border-2 p-3 text-left text-lg active:scale-[0.98] ${
                 answered && i === item.answer
                   ? "border-emerald-500 bg-emerald-950/50 text-stone-100"
                   : answered && i === chosen
@@ -157,7 +157,7 @@ function ItemView({ item, onNext }: { item: QuizItem; onNext: (r: Response) => v
           disabled={checked}
           onChange={(e) => setNumberText(e.target.value.replace(/[^\d.,-]/g, ""))}
           aria-label={app.ui("typeAnswer")}
-          className="mx-auto w-48 rounded-xl border border-stone-600 bg-stone-950 p-3 text-center font-mono text-3xl text-stone-100 outline-none focus:border-amber-400"
+          className="mx-auto w-48 rounded-md border border-stone-600 bg-stone-950 p-3 text-center font-mono text-3xl text-stone-100 outline-none focus:border-amber-400"
         />
         {!checked ? (
           <PrimaryButton
@@ -271,7 +271,7 @@ function ItemView({ item, onNext }: { item: QuizItem; onNext: (r: Response) => v
               setClaim(i);
               setFeedback(null);
             }}
-            className={`min-h-14 rounded-xl border-2 p-3 text-left text-lg ${
+            className={`min-h-14 rounded-md border-2 p-3 text-left text-lg ${
               claim === i ? "border-amber-400 bg-amber-500/20 text-amber-50" : "border-stone-600 bg-stone-800 text-stone-100"
             }`}
           >
@@ -296,7 +296,7 @@ function ItemView({ item, onNext }: { item: QuizItem; onNext: (r: Response) => v
                     setFeedback(null);
                     setEvidence((ev) => (on ? ev.filter((x) => x !== i) : ev.length < item.pick ? [...ev, i] : ev));
                   }}
-                  className={`min-h-16 rounded-xl border-2 p-3 text-left ${
+                  className={`min-h-16 rounded-md border-2 p-3 text-left ${
                     on ? "border-sky-400 bg-sky-500/15 text-sky-50" : "border-stone-600 bg-stone-800 text-stone-100"
                   }`}
                 >

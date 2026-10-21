@@ -45,7 +45,7 @@ function Joystick() {
   return (
     <div
       ref={baseRef}
-      className="pointer-events-auto relative h-36 w-36 touch-none rounded-full border-2 border-white/30 bg-stone-900/40 backdrop-blur-sm"
+      className="pointer-events-auto relative h-36 w-36 touch-none rounded-full border-2 border-white/30 bg-stone-900/40"
       onPointerDown={(e) => {
         e.preventDefault();
         pointerId.current = e.pointerId;
@@ -83,7 +83,7 @@ function ActionButton({
     <button
       type="button"
       aria-label={label}
-      className={`pointer-events-auto flex touch-none select-none items-center justify-center rounded-full border-2 border-white/40 bg-stone-900/60 text-3xl text-white shadow-lg backdrop-blur-sm active:scale-90 active:bg-amber-500/70 ${className}`}
+      className={`pointer-events-auto flex touch-none select-none items-center justify-center rounded-full border-2 border-white/40 bg-stone-900/60 text-3xl text-white shadow-lg active:scale-90 active:bg-rubric-600/80 ${className}`}
       onPointerDown={(e) => {
         e.preventDefault();
         onPress();

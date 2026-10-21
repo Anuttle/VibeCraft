@@ -51,13 +51,15 @@ interface RichTextProps {
   /** Character offset (in text without markup) of the word being read aloud. */
   highlightAt?: number | null;
   className?: string;
+  /** "paper" for dark text on a light page (the dialogue box). */
+  tone?: "dark" | "paper";
 }
 
 /**
  * Renders *emphasis* as bold and highlights the word being spoken. Bold words
  * that are in the glossary can be tapped to open their card.
  */
-export default function RichText({ text, highlightAt, className }: RichTextProps) {
+export default function RichText({ text, highlightAt, className, tone = "dark" }: RichTextProps) {
   const app = useApp();
   const { tokens, phrases } = useMemo(() => tokenize(text), [text]);
 
@@ -71,14 +73,15 @@ export default function RichText({ text, highlightAt, className }: RichTextProps
           highlightAt >= t.start &&
           highlightAt < t.start + t.text.length + 1;
         const entry = t.bold ? findTerm(phrases.get(t.group) ?? t.text, app.lang) : undefined;
-        const cls = `${t.bold ? "font-bold text-amber-200" : ""} ${active ? "bg-amber-300 text-slate-950 rounded px-0.5 -mx-0.5" : ""} transition-colors`;
+        const boldCls = tone === "paper" ? "font-bold text-rubric-700" : "font-bold text-amber-200";
+        const cls = `${t.bold ? boldCls : ""} ${active ? "bg-amber-300 text-slate-950 rounded px-0.5 -mx-0.5" : ""} transition-colors`;
         if (entry) {
           return (
             <button
               key={i}
               type="button"
               onClick={() => openGlossaryEntry(entry)}
-              className={`${cls} underline decoration-amber-400/60 decoration-dotted underline-offset-4`}
+              className={`${cls} underline decoration-dotted underline-offset-4 ${tone === "paper" ? "decoration-rubric-500/70" : "decoration-amber-400/60"}`}
             >
               {t.text}
             </button>

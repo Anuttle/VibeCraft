@@ -35,7 +35,7 @@ export function GlossaryCard({ entry }: { entry: GlossaryEntry }) {
         {entry.emoji}
       </div>
       {langs.map((l, i) => (
-        <div key={l} className={`flex items-start gap-3 rounded-xl p-3 ${i === 0 ? "bg-stone-800" : "bg-stone-900 opacity-90"}`} lang={l}>
+        <div key={l} className={`flex items-start gap-3 rounded-md p-3 ${i === 0 ? "bg-stone-800" : "bg-stone-900 opacity-90"}`} lang={l}>
           <div className="flex-1">
             <div className={`font-bold text-amber-200 ${i === 0 ? "text-2xl" : "text-lg"}`}>{entry.term[l]}</div>
             <p className={`text-stone-100 ${i === 0 ? "text-lg" : "text-base italic"}`}>{(simple ? entry.simple : entry.full)[l]}</p>
@@ -69,7 +69,7 @@ export function GlossaryHost() {
   return (
     <div className="absolute inset-0 z-[70] flex items-center justify-center bg-stone-950/70 p-4" onClick={() => setEntry(null)}>
       <div
-        className="w-full max-w-md rounded-2xl border border-amber-700/60 bg-stone-900 p-5 shadow-2xl"
+        className="w-full max-w-md rounded-lg border border-amber-700/60 bg-stone-900 p-5 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-label={entry.term[app.lang]}
@@ -79,7 +79,7 @@ export function GlossaryHost() {
             type="button"
             onClick={() => setEntry(null)}
             aria-label={app.ui("close")}
-            className="flex h-11 w-11 items-center justify-center rounded-xl border border-stone-700 text-stone-300"
+            className="flex h-11 w-11 items-center justify-center rounded-md border border-stone-700 text-stone-300"
           >
             <X className="h-5 w-5" />
           </button>
@@ -108,7 +108,7 @@ export function GlossaryList() {
         onChange={(e) => setQ(e.target.value)}
         placeholder={app.ui("search")}
         aria-label={app.ui("search")}
-        className="min-h-12 rounded-xl border border-stone-600 bg-stone-950 px-4 text-lg text-stone-100 outline-none focus:border-amber-400"
+        className="min-h-12 rounded-md border border-stone-600 bg-stone-950 px-4 text-lg text-stone-100 outline-none focus:border-amber-400"
       />
       {shown.length === 0 && <p className="text-stone-400">{app.ui("noMatches")}</p>}
       <div className="grid gap-2 sm:grid-cols-2">
@@ -117,7 +117,7 @@ export function GlossaryList() {
             key={g.id}
             type="button"
             onClick={() => openGlossaryEntry(g)}
-            className="flex min-h-14 items-center gap-3 rounded-xl border border-stone-700 bg-stone-800 px-4 text-left text-stone-100"
+            className="flex min-h-14 items-center gap-3 rounded-md border border-stone-700 bg-stone-800 px-4 text-left text-stone-100"
           >
             <span className="text-2xl" aria-hidden>
               {g.emoji}

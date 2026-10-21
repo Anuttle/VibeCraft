@@ -138,6 +138,24 @@ export const UI = {
     es: "¿Borrar todos los nombres y el progreso en este dispositivo?",
   },
   changePin: { en: "Change PIN", es: "Cambiar PIN" },
+  freeMode: { en: "Free build", es: "Construcción libre" },
+  freeEarned: { en: "After all chapters", es: "Al terminar los capítulos" },
+  freeOpen: { en: "Open to all", es: "Abierta para todos" },
+  freeOff: { en: "Off", es: "Desactivada" },
+  freeModeNote: {
+    en: "An open world with every building block and no goals. Builds save on each device.",
+    es: "Un mundo abierto con todos los bloques y sin metas. Las construcciones se guardan en cada dispositivo.",
+  },
+  freeLocked: {
+    en: "Finish every chapter to unlock ({n} of {total} done)",
+    es: "Termina todos los capítulos para desbloquearla ({n} de {total})",
+  },
+  freeHint: {
+    en: "Free build: open your bag and tap Supply for any block.",
+    es: "Construcción libre: abre tu bolsa y toca Suministros para tomar cualquier bloque.",
+  },
+  supply: { en: "Supply", es: "Suministros" },
+  supplyNote: { en: "Tap a block to take a full stack.", es: "Toca un bloque para tomar una pila completa." },
   voiceMissing: {
     en: "This device has no {lang} voice installed, so read-aloud will be silent in {lang}.",
     es: "Este dispositivo no tiene una voz en {lang}, así que la lectura en voz alta no funcionará en {lang}.",

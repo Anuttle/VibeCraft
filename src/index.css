@@ -1,5 +1,77 @@
 @import "tailwindcss";
 
+/*
+ * Print-shop palette. The components use Tailwind's stone, slate, amber and
+ * emerald names; these remap them so the whole game shares one look: walnut and
+ * ink browns, cream paper, brass for actions, and a green-ink for success.
+ */
+@theme {
+  --color-stone-50: #faf6ee;
+  --color-stone-100: #f3ead8;
+  --color-stone-200: #e4d6b8;
+  --color-stone-300: #cdb98f;
+  --color-stone-400: #ab9873;
+  --color-stone-500: #85735a;
+  --color-stone-600: #5f5141;
+  --color-stone-700: #463b2f;
+  --color-stone-800: #30281f;
+  --color-stone-850: #271f19;
+  --color-stone-900: #211b15;
+  --color-stone-950: #15110d;
+
+  --color-slate-50: #faf6ee;
+  --color-slate-100: #f3ead8;
+  --color-slate-200: #e4d6b8;
+  --color-slate-300: #cdb98f;
+  --color-slate-400: #ab9873;
+  --color-slate-500: #85735a;
+  --color-slate-600: #5f5141;
+  --color-slate-700: #463b2f;
+  --color-slate-800: #30281f;
+  --color-slate-850: #271f19;
+  --color-slate-900: #211b15;
+  --color-slate-950: #15110d;
+
+  --color-amber-50: #fbf3df;
+  --color-amber-100: #f5e6c0;
+  --color-amber-200: #ecd294;
+  --color-amber-300: #e2bc66;
+  --color-amber-400: #d4a444;
+  --color-amber-500: #bf8c2e;
+  --color-amber-600: #9a6e22;
+  --color-amber-700: #76531b;
+  --color-amber-800: #573d16;
+  --color-amber-900: #3e2c11;
+  --color-amber-950: #261b0b;
+
+  --color-emerald-200: #c4dcc4;
+  --color-emerald-300: #9fc6a2;
+  --color-emerald-400: #74a97c;
+  --color-emerald-500: #4f8b5b;
+  --color-emerald-600: #3d7049;
+  --color-emerald-700: #2f5a39;
+  --color-emerald-800: #23432b;
+  --color-emerald-900: #18301f;
+  --color-emerald-950: #0f2015;
+
+  /* Red ink, as printers used for headings and initials. */
+  --color-rubric-500: #b5382d;
+  --color-rubric-600: #9c2a23;
+  --color-rubric-700: #7d1f1a;
+
+  --font-serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, "Times New Roman", serif;
+}
+
+@layer base {
+  /* Headings are set in a book face, like the printed pages the game is about. */
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-serif);
+    letter-spacing: 0.005em;
+  }
+}
+
 html,
 body,
 #root {
@@ -27,6 +99,17 @@ body {
 @layer base {
   * {
     touch-action: manipulation;
+  }
+}
+
+/* Primary buttons sit on a dark edge, like a key pressed into the page. */
+@layer components {
+  button.bg-rubric-600 {
+    box-shadow: 0 3px 0 #5a1612;
+  }
+  button.bg-rubric-600:active {
+    box-shadow: none;
+    transform: translateY(2px);
   }
 }
 

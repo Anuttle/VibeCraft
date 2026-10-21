@@ -22,7 +22,7 @@ export default function InteractPrompt({ target, onUse }: InteractPromptProps) {
       <button
         type="button"
         onClick={onUse}
-        className="pointer-events-auto flex min-h-16 items-center gap-3 rounded-2xl border-2 border-amber-300 bg-amber-500 px-6 text-xl font-bold text-stone-950 shadow-2xl active:scale-95"
+        className="pointer-events-auto flex min-h-16 items-center gap-3 rounded-lg border-2 border-rubric-700 bg-rubric-600 px-6 text-xl font-bold text-stone-50 shadow-2xl active:scale-95"
       >
         <span aria-hidden className="text-2xl">
           {target.kind === "npc" ? "💬" : "✋"}

@@ -62,7 +62,7 @@ export default function CarveGame({ cfg, title, icon, onComplete, onClose }: Car
             {round + 1} / {cfg.glyphs.length}
           </p>
           <div className="flex flex-col items-center rounded-lg bg-[#f8f1df] px-10 py-4 shadow">
-            <span className="text-xs font-bold uppercase tracking-wider text-stone-500">{app.ui("carvePrints")}</span>
+            <span className="text-xs font-bold text-stone-500">{app.ui("carvePrints")}</span>
             <span className="font-serif text-7xl text-stone-900">{glyph}</span>
           </div>
           <p className="text-lg font-semibold text-stone-100">{app.ui("carveWhich")}</p>
@@ -74,7 +74,7 @@ export default function CarveGame({ cfg, title, icon, onComplete, onClose }: Car
                 onClick={() => choose(opt)}
                 disabled={wrong.includes(opt.id) || feedback?.good}
                 aria-label={`${glyph} ${opt.id}`}
-                className="flex h-28 w-28 items-center justify-center rounded-xl border-4 border-orange-900 bg-gradient-to-b from-orange-700 to-orange-800 shadow-lg active:scale-95 disabled:opacity-40"
+                className="flex h-28 w-28 items-center justify-center rounded-md border-4 border-orange-900 bg-gradient-to-b from-orange-700 to-orange-800 shadow-lg active:scale-95 disabled:opacity-40"
               >
                 <span className="font-serif text-6xl text-orange-200" style={{ transform: opt.transform, display: "inline-block" }}>
                   {glyph}
