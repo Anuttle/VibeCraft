@@ -70,22 +70,22 @@ export default function DialogueBox({ line, onNext }: DialogueBoxProps) {
   return (
     <div className="absolute inset-x-0 bottom-0 z-40 flex justify-center px-4 pb-6 pointer-events-none">
       <div
-        className="pointer-events-auto w-full max-w-3xl rounded-2xl border border-amber-700/50 bg-stone-900/95 p-5 shadow-2xl backdrop-blur-md"
+        className="pointer-events-auto w-full max-w-3xl rounded-md border-2 border-stone-900 bg-stone-100 p-5 text-stone-900 shadow-[0_6px_0_rgba(21,17,13,0.55)]"
         role="dialog"
         aria-live="polite"
       >
-        <div className="mb-2 flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-amber-400">
+        <div className="mb-2 flex items-center gap-2 font-serif text-base font-bold text-rubric-700">
           <span aria-hidden>📖</span>
           {app.line(line.speaker)}
         </div>
 
-        <p className={`${textSize} text-stone-100`} lang={app.lang}>
-          <RichText text={main.text} highlightAt={wordAt} />
+        <p className={`${textSize} text-stone-900`} lang={app.lang}>
+          <RichText text={main.text} highlightAt={wordAt} tone="paper" />
         </p>
 
         {showOther && (
-          <p className="mt-3 border-t border-stone-700 pt-3 text-base italic leading-relaxed text-stone-300" lang={altLang}>
-            <RichText text={alt.text} highlightAt={otherWordAt} />
+          <p className="mt-3 border-t border-stone-300 pt-3 text-base italic leading-relaxed text-stone-600" lang={altLang}>
+            <RichText text={alt.text} highlightAt={otherWordAt} tone="paper" />
           </p>
         )}
 
@@ -93,7 +93,7 @@ export default function DialogueBox({ line, onNext }: DialogueBoxProps) {
           <button
             type="button"
             onClick={speakMain}
-            className="flex min-h-12 items-center gap-2 rounded-xl border border-stone-600 bg-stone-800 px-4 text-stone-100 active:scale-95"
+            className="flex min-h-12 items-center gap-2 rounded-md border border-stone-500 bg-stone-200 px-4 font-semibold text-stone-900 active:scale-95"
           >
             <Volume2 className="h-5 w-5" />
             {app.ui("listen")}
@@ -101,7 +101,7 @@ export default function DialogueBox({ line, onNext }: DialogueBoxProps) {
           <button
             type="button"
             onClick={speakOther}
-            className="flex min-h-12 items-center gap-2 rounded-xl border border-stone-600 bg-stone-800 px-4 text-stone-100 active:scale-95"
+            className="flex min-h-12 items-center gap-2 rounded-md border border-stone-500 bg-stone-200 px-4 font-semibold text-stone-900 active:scale-95"
           >
             <Languages className="h-5 w-5" />
             {app.ui("hearOther")}
@@ -109,7 +109,7 @@ export default function DialogueBox({ line, onNext }: DialogueBoxProps) {
           <button
             type="button"
             onClick={handleNext}
-            className="ml-auto flex min-h-12 items-center gap-1 rounded-xl bg-amber-500 px-6 text-lg font-bold text-stone-950 shadow-lg active:scale-95"
+            className="ml-auto flex min-h-12 items-center gap-1 rounded-md bg-rubric-600 px-6 text-lg font-bold text-stone-50 shadow-[0_3px_0_#5a1612] active:translate-y-0.5 active:shadow-none"
             autoFocus
           >
             {app.ui("next")}

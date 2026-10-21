@@ -15,20 +15,21 @@ import InteractPrompt from "./components/InteractPrompt";
 import ActivityHost from "./components/minigames/ActivityHost";
 import QuizGame from "./components/minigames/QuizGame";
 import type { ActivityResult, QuizResult } from "./game/activities";
-import { Interactable, StationId } from "./game/world";
+import { Interactable, StationId, WorldSetup } from "./game/world";
 import { ChapterComplete, ChapterSelect, JournalScreen, PauseMenu, ScreenFrame, TitleScreen } from "./components/screens";
 import { GlossaryHost, GlossaryList } from "./components/Glossary";
 import { PrintJob, PrintView } from "./components/Print";
 import { AppContext, AppContextValue } from "./AppContext";
 import { BlockType, InventorySlot } from "./types";
-import { ITEM_REGISTRY } from "./utils/items";
+import { ITEM_REGISTRY, SUPPLY_ITEMS } from "./utils/items";
 import { playSoundEffect } from "./utils/mobs";
 import { Lang } from "./i18n/types";
 import { UI } from "./content/ui";
-import { findChapter } from "./content/chapters";
+import { FREE_BUILD, findChapter } from "./content/chapters";
 import { narrator } from "./audio/narrator";
 import { detectInputMode, gameActions } from "./game/input";
-import { PlayerInventory, addItem, consumeHotbarItem, emptyInventory, wearTool } from "./game/inventory";
+import { PlayerInventory, addItem, consumeHotbarItem, emptyInventory, freeBuildInventory, wearTool } from "./game/inventory";
+import { freeWorldRecorder, loadFreeWorld } from "./save/freeWorld";
 import {
   DialogueLine,
   GameEvent,
@@ -145,11 +146,12 @@ export default function App() {
   const step = quest.done ? null : steps[quest.stepIndex] ?? null;
   const dialogueActive = screen === "game" && isDialogueActive(steps, quest);
   const currentLine = dialogueActive && step?.dialogue ? step.dialogue[quest.dialogueIndex] : null;
-  const showComplete = screen === "game" && quest.done && !completeDismissed;
+  const isFree = chapterId === FREE_BUILD.id;
+  const showComplete = screen === "game" && quest.done && !completeDismissed && !isFree;
 
   // Save progress whenever the quest moves.
   useEffect(() => {
-    if (screen !== "game" || !activeProfileId) return;
+    if (screen !== "game" || !activeProfileId || isFree) return;
     updateProfile(activeProfileId, (p) => ({
       ...p,
       progress: {
@@ -157,7 +159,23 @@ export default function App() {
         [chapterId]: { quest, completed: (p.progress[chapterId]?.completed ?? false) || quest.done },
       },
     }));
-  }, [quest, screen, activeProfileId, chapterId, updateProfile]);
+  }, [quest, screen, activeProfileId, chapterId, isFree, updateProfile]);
+
+  // Free build keeps each student's world: same land, with their blocks replayed.
+  const freeRecorder = useRef<ReturnType<typeof freeWorldRecorder> | null>(null);
+  const world = useMemo<WorldSetup>(() => {
+    const base = chapterInfo?.chapter?.world ?? {};
+    if (!isFree || !activeProfileId) return base;
+    const saved = loadFreeWorld(activeProfileId);
+    const recorder = freeWorldRecorder(activeProfileId, saved);
+    freeRecorder.current = recorder;
+    return { ...base, freeBuild: { seed: saved.seed, edits: saved.edits, onEdit: recorder.record } };
+  }, [chapterInfo, isFree, activeProfileId]);
+  useEffect(() => {
+    const flush = () => freeRecorder.current?.flush();
+    window.addEventListener("pagehide", flush);
+    return () => window.removeEventListener("pagehide", flush);
+  }, []);
 
   // Chime when a goal or the chapter is finished.
   const prevQuest = useRef(quest);
@@ -364,7 +382,7 @@ export default function App() {
     setQuest(saved && !saved.completed ? normalizeState(chapterSteps, saved.quest) : normalizeState(chapterSteps, undefined));
     prevQuest.current = INITIAL_QUEST_STATE;
     setCompleteDismissed(false);
-    setInv(emptyInventory());
+    setInv(id === FREE_BUILD.id ? freeBuildInventory() : emptyInventory());
     setActiveSlotIndex(0);
     setIsInventoryOpen(false);
     setPaused(false);
@@ -377,6 +395,7 @@ export default function App() {
   };
 
   const leaveGame = () => {
+    freeRecorder.current?.flush();
     narrator.stop();
     unlockPointer();
     setPaused(false);
@@ -405,7 +424,11 @@ export default function App() {
   const objectiveVisible = screen === "game" && !dialogueActive && !quest.done && step?.objective && step.objectiveText;
 
   const objective =
-    objectiveVisible && step?.objective && step.objectiveText ? (
+    isFree && screen === "game" ? (
+      <div className="max-w-xs rounded-md border border-stone-700 bg-stone-900/85 px-4 py-3 text-stone-100 shadow-lg">
+        🏗️ {UI.freeHint[lang]}
+      </div>
+    ) : objectiveVisible && step?.objective && step.objectiveText ? (
       <ObjectiveTracker
         stepId={`${chapterId}.${step.id}`}
         objective={step.objective}
@@ -436,7 +459,7 @@ export default function App() {
               onGameEvent={handleGameEvent}
               spawnDropExternalRef={spawnDropExternalRef}
               onOpenCraftingTable={handleOpenCraftingTable}
-              world={chapterInfo?.chapter?.world ?? {}}
+              world={world}
               onFocusChange={setFocus}
               suspended={station !== null || teacherOpen}
             />
@@ -504,7 +527,7 @@ export default function App() {
                 <button
                   type="button"
                   onClick={() => setJournalDismissed(false)}
-                  className="pointer-events-auto flex min-h-16 items-center gap-3 rounded-2xl border-2 border-amber-300 bg-amber-500 px-6 text-xl font-bold text-stone-950 shadow-2xl active:scale-95"
+                  className="pointer-events-auto flex min-h-16 items-center gap-3 rounded-lg border-2 border-rubric-700 bg-rubric-600 px-6 text-xl font-bold text-stone-50 shadow-2xl active:scale-95"
                 >
                   📖 {journalCheckLabel(lang)}
                 </button>
@@ -535,6 +558,7 @@ export default function App() {
               isCraftingTableOpen={isCraftingTableOpen}
               onCrafted={(itemId, count) => handleGameEvent({ type: "crafted", itemId, count })}
               banner={objective}
+              supply={isFree ? SUPPLY_ITEMS : undefined}
             />
 
             {showComplete && (
@@ -575,7 +599,7 @@ export default function App() {
                   <button
                     type="button"
                     onClick={() => setGlossaryOpen(false)}
-                    className="min-h-11 rounded-xl border border-stone-700 bg-stone-900 px-4 text-stone-200"
+                    className="min-h-11 rounded-md border border-stone-700 bg-stone-900 px-4 text-stone-200"
                   >
                     {UI.close[lang]}
                   </button>
@@ -595,6 +619,7 @@ export default function App() {
             onSwitchProfile={() => selectProfile(null)}
             onOpenTeacher={() => setTeacherOpen(true)}
             onOpenJournal={() => setScreen("journal")}
+            freeMode={settings.freeMode}
           />
         ) : screen === "journal" && profile ? (
           <JournalScreen

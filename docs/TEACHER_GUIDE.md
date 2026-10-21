@@ -22,6 +22,18 @@ Each chapter takes about one class period. Turn on only the chapters you want to
 
 Every chapter ends with a journal check. The game saves the answers.
 
+### Free Build
+
+After the chapters, students can unlock **Free Build**: open land with every building block, including workshop blocks such as timber, plaster and a printing press, and no goals. Students take blocks from **Supply** in the bag. Each student's build is saved on the device.
+
+In the teacher panel, **Free build** can be set to:
+
+| Setting | What it does |
+|---|---|
+| **After all chapters** (default) | Unlocks once a student finishes every chapter you turned on |
+| **Open to all** | Every student can play it right away |
+| **Off** | Hidden |
+
 ## The three settings: mix and match for each group
 
 Open **Teacher** (top right), then enter your PIN. The first time, you create a 4-digit PIN.
@@ -31,6 +43,7 @@ Open **Teacher** (top right), then enter your PIN. The first time, you create a 
 | **Grade band** | How hard the activities and questions are | K–2, 3–5, 6–8, 9–12 |
 | **Reading level** | How hard the story text is | T1 (BR–400L), T2 (400–700L), T3 (700–1000L), T4 (1000–1300L+) |
 | **Language** | Starting language, and whether students may switch | English / Español |
+| **Free build** | When students can play Free Build | After all chapters, Open to all, Off |
 
 These settings are separate. For example, a 7th grader reading at 550L can play the 6–8 activities with T2 text, in Spanish.
 
@@ -86,7 +99,7 @@ On each device, open **Teacher**, then go to **Class progress on this device**:
 
 On an iPad, a download opens the share sheet. Save it to Files or send it to yourself. Open the CSV files in Google Sheets, Excel or Numbers, and paste the files from different iPads together.
 
-**Delete all student progress** (in the teacher panel) clears every name and answer on that device. You'll be asked to confirm, and it can't be undone.
+**Delete all student progress** (in the teacher panel) clears every name, answer and Free Build world on that device. You'll be asked to confirm, and it can't be undone.
 
 ## Recorded audio (optional)
 
@@ -104,6 +117,10 @@ To generate the files automatically with Google Gemini text-to-speech, run `GEMI
 
 - Check Google's current model and voice names first, and listen to a sample before generating everything.
 - Always have a Spanish speaker review generated audio.
+
+## Textures (optional)
+
+Blocks show as plain colors and items as emoji until you add pictures. Put PNG files with the right names in `public/textures/blocks` and `public/textures/items`; see `docs/TEXTURES.md` for every file name.
 
 ## Putting the game online
 

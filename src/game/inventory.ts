@@ -123,3 +123,12 @@ export function tapSlot(
   if (placeMode !== "all") return { slot, cursor: holding };
   return { slot: { ...holding }, cursor: { ...slot } };
 }
+
+/** Free build starts with a hotbar of building blocks; the bag's supply has the rest. */
+export function freeBuildInventory(): PlayerInventory {
+  let inv = emptyInventory();
+  for (const id of ["wood_planks", "stone_brick", "timber_beam", "plaster", "red_lacquer", "cobblestone", "torch"]) {
+    inv = addItem(inv, id, ITEM_REGISTRY[id]?.maxStack ?? 64).inv;
+  }
+  return inv;
+}

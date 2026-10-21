@@ -54,12 +54,12 @@ export default function ObjectiveTracker({ stepId, objective, text, progress, co
 
   return (
     <div
-      className={`pointer-events-auto rounded-2xl border border-amber-700/50 bg-stone-900/90 text-stone-100 ${
-        compact ? "w-full p-3" : "w-[min(22rem,calc(100vw-2rem))] p-4 shadow-xl backdrop-blur-md"
+      className={`pointer-events-auto rounded-lg border border-amber-700/50 bg-stone-900/90 text-stone-100 ${
+        compact ? "w-full p-3" : "w-[min(22rem,calc(100vw-2rem))] p-4 shadow-xl"
       }`}
     >
       <div className="mb-1 flex items-center justify-between gap-2">
-        <span className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-amber-400">
+        <span className="flex items-center gap-1.5 text-xs font-bold text-amber-400">
           <Target className="h-4 w-4" />
           {app.ui("goal")}
         </span>

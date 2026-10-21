@@ -2,6 +2,7 @@ import { HelpCircle } from "lucide-react";
 import { InventorySlot } from "../types";
 import { ITEM_REGISTRY } from "../utils/items";
 import { useApp } from "../AppContext";
+import ItemIcon from "./ItemIcon";
 
 interface HUDProps {
   showCrosshair: boolean;
@@ -32,7 +33,7 @@ export default function HUD({ showCrosshair, activeSlotIndex, onActiveSlotIndexC
           <div className="rounded-full border border-stone-700 bg-stone-950/85 px-3 py-1 shadow-md">
             <span className="text-sm font-bold text-stone-100">{activeItemName}</span>
           </div>
-          <div className="flex items-center gap-1.5 rounded-2xl border border-stone-700 bg-stone-900/80 p-2 shadow-2xl backdrop-blur-md">
+          <div className="flex items-center gap-1.5 rounded-lg border border-stone-700 bg-stone-900/80 p-2 shadow-2xl">
             {hotbar.map((slot, idx) => {
               const isSelected = idx === activeSlotIndex;
               const def = slot.itemId ? ITEM_REGISTRY[slot.itemId] : null;
@@ -44,7 +45,7 @@ export default function HUD({ showCrosshair, activeSlotIndex, onActiveSlotIndexC
                   type="button"
                   onClick={() => onActiveSlotIndexChange(idx)}
                   aria-label={name || `${idx + 1}`}
-                  className={`relative flex items-center justify-center rounded-xl transition-all ${
+                  className={`relative flex items-center justify-center rounded-md transition-all ${
                     isTouch ? "h-14 w-14" : "h-12 w-12"
                   } ${
                     isSelected
@@ -54,9 +55,9 @@ export default function HUD({ showCrosshair, activeSlotIndex, onActiveSlotIndexC
                 >
                   {def ? (
                     <span className="relative text-xl">
-                      {def.emoji}
+                      <ItemIcon item={def} />
                       {slot.count > 1 && (
-                        <span className="absolute -bottom-2 -right-3 rounded-sm border border-stone-600 bg-stone-950 px-1 font-mono text-[10px] font-black text-white">
+                        <span className="absolute -bottom-2 -right-3 rounded-sm border border-stone-600 bg-stone-950 px-1 text-xs font-black text-white">
                           {slot.count}
                         </span>
                       )}
@@ -75,7 +76,7 @@ export default function HUD({ showCrosshair, activeSlotIndex, onActiveSlotIndexC
                     </span>
                   )}
                   {!isTouch && (
-                    <span className="absolute left-1 top-0.5 font-mono text-[8px] font-bold text-stone-500">{idx + 1}</span>
+                    <span className="absolute left-1 top-0.5 text-[10px] font-bold text-stone-500">{idx + 1}</span>
                   )}
                 </button>
               );
@@ -85,8 +86,8 @@ export default function HUD({ showCrosshair, activeSlotIndex, onActiveSlotIndexC
       </div>
 
       {!isTouch && (
-        <div className="pointer-events-auto absolute bottom-4 right-4 hidden w-56 flex-col gap-1.5 rounded-xl border border-stone-700 bg-stone-900/75 p-3 text-xs text-stone-300 shadow-lg backdrop-blur-md lg:flex">
-          <span className="mb-0.5 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-stone-400">
+        <div className="pointer-events-auto absolute bottom-4 right-4 hidden w-56 flex-col gap-1.5 rounded-md border border-stone-700 bg-stone-900/75 p-3 text-xs text-stone-300 shadow-lg lg:flex">
+          <span className="mb-0.5 flex items-center gap-1.5 text-[11px] font-bold text-stone-400">
             <HelpCircle className="h-3.5 w-3.5" /> {app.ui("controls")}
           </span>
           {(
@@ -100,7 +101,7 @@ export default function HUD({ showCrosshair, activeSlotIndex, onActiveSlotIndexC
             ] as const
           ).map(([key, label]) => (
             <div key={label} className="flex items-center justify-between">
-              <span className="font-mono text-stone-400">{key}</span>
+              <span className=" text-stone-400">{key}</span>
               <span className="rounded border border-stone-700 bg-stone-800 px-1.5 py-0.5 text-stone-100">
                 {app.ui(label)}
               </span>

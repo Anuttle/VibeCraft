@@ -21,6 +21,8 @@ export interface MobEntity {
   walkTimer: number;
   targetDirection: THREE.Vector3;
   isGrounded: boolean;
+  /** Seconds left running away after being tapped. */
+  scared?: number;
 }
 
 // 1. Procedural Pig Mesh (Passive Mob)
@@ -105,7 +107,7 @@ function getAudioContext(): AudioContext {
   return audioCtx;
 }
 
-export function playSoundEffect(type: "block_break" | "pickup" | "success") {
+export function playSoundEffect(type: "block_break" | "pickup" | "success" | "oink") {
   try {
     const ctx = getAudioContext();
     const now = ctx.currentTime;
@@ -122,6 +124,27 @@ export function playSoundEffect(type: "block_break" | "pickup" | "success") {
       gain.connect(ctx.destination);
       osc.start(now);
       osc.stop(now + 0.12);
+    } else if (type === "oink") {
+      // Two short grunts, low and buzzy
+      [0, 0.16].forEach((offset) => {
+        const osc = ctx.createOscillator();
+        const filter = ctx.createBiquadFilter();
+        const gain = ctx.createGain();
+        const t = now + offset;
+        osc.type = "sawtooth";
+        osc.frequency.setValueAtTime(260, t);
+        osc.frequency.exponentialRampToValueAtTime(150, t + 0.12);
+        filter.type = "lowpass";
+        filter.frequency.setValueAtTime(900, t);
+        gain.gain.setValueAtTime(0.0001, t);
+        gain.gain.linearRampToValueAtTime(0.18, t + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.13);
+        osc.connect(filter);
+        filter.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(t);
+        osc.stop(t + 0.14);
+      });
     } else if (type === "block_break") {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();

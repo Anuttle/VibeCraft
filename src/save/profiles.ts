@@ -1,5 +1,6 @@
 import { Lang } from "../i18n/types";
 import { readJson, removeKey, writeJson } from "./storage";
+import { clearFreeWorld } from "./freeWorld";
 import { QuestState } from "../game/quest";
 import type { QuizResult } from "../game/activities";
 
@@ -58,6 +59,7 @@ export function saveActiveProfileId(id: string | null): void {
 }
 
 export function clearAllProfiles(): void {
+  for (const p of loadProfiles()) clearFreeWorld(p.id);
   removeKey(PROFILES_KEY);
   removeKey(ACTIVE_KEY);
 }

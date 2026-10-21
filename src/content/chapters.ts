@@ -97,6 +97,31 @@ export const CHAPTERS: ChapterInfo[] = [
   },
 ];
 
+/**
+ * Free build: open land with every building block and no goals. Kept out of
+ * CHAPTERS because it has no lesson, journal or progress to track.
+ */
+export const FREE_BUILD: ChapterInfo = {
+  id: "free",
+  number: null,
+  title: { en: "Free Build", es: "Construcción libre" },
+  anchor: { en: "Build your own print shop, or anything you like", es: "Construye tu propia imprenta, o lo que quieras" },
+  icon: "🏗️",
+  chapter: { id: "free", world: { spawnTrees: true }, steps: [] },
+};
+
 export function findChapter(id: string): ChapterInfo | undefined {
-  return CHAPTERS.find((c) => c.id === id);
+  return id === FREE_BUILD.id ? FREE_BUILD : CHAPTERS.find((c) => c.id === id);
+}
+
+/** Whether a student may play free build under the teacher's setting. */
+export function freeBuildUnlocked(
+  mode: "earned" | "open" | "off",
+  enabledChapters: number[],
+  completed: (chapterId: string) => boolean
+): { unlocked: boolean; done: number; total: number } {
+  const story = CHAPTERS.filter((c) => c.number !== null && enabledChapters.includes(c.number) && c.chapter);
+  const done = story.filter((c) => completed(c.id)).length;
+  const unlocked = mode === "open" || (mode === "earned" && done === story.length && story.length > 0);
+  return { unlocked, done, total: story.length };
 }

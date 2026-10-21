@@ -29,7 +29,7 @@ export default function MinigameFrame({ title, icon, instruction, speakText, onC
   useEffect(() => () => narrator.stop(), []);
 
   return (
-    <div className="absolute inset-0 z-50 overflow-y-auto bg-stone-950/90 backdrop-blur-md">
+    <div className="absolute inset-0 z-50 overflow-y-auto bg-stone-950/90">
       <div className="mx-auto flex min-h-full w-full max-w-4xl flex-col gap-4 px-4 py-5">
         <div className="flex items-center justify-between gap-3">
           <h2 className="flex items-center gap-2 text-2xl font-bold text-amber-100">
@@ -40,13 +40,13 @@ export default function MinigameFrame({ title, icon, instruction, speakText, onC
             type="button"
             onClick={onClose}
             aria-label={app.ui("close")}
-            className="flex h-12 w-12 items-center justify-center rounded-xl border border-stone-700 bg-stone-900 text-stone-200"
+            className="flex h-12 w-12 items-center justify-center rounded-md border border-stone-700 bg-stone-900 text-stone-200"
           >
             <X className="h-6 w-6" />
           </button>
         </div>
 
-        <div className="flex items-start gap-3 rounded-2xl border border-amber-700/50 bg-stone-900 p-4">
+        <div className="flex items-start gap-3 rounded-lg border border-amber-700/50 bg-stone-900 p-4">
           <p className={`flex-1 text-stone-100 ${isK2 ? "text-xl" : "text-base sm:text-lg"}`}>{instruction}</p>
           <button
             type="button"

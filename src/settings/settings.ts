@@ -12,7 +12,15 @@ export interface ClassSettings {
   allowLangSwitch: boolean;
   /** Story chapter numbers (0-7) that are enabled. The tutorial is always enabled. */
   chapters: number[];
+  /**
+   * Free build: "earned" unlocks it once a student finishes every enabled
+   * chapter, "open" makes it available to everyone, "off" hides it.
+   */
+  freeMode: FreeMode;
 }
+
+export type FreeMode = "earned" | "open" | "off";
+export const FREE_MODES: FreeMode[] = ["earned", "open", "off"];
 
 export const ALL_CHAPTERS = [0, 1, 2, 3, 4, 5, 6, 7];
 
@@ -23,6 +31,7 @@ export const DEFAULT_SETTINGS: ClassSettings = {
   audio: true,
   allowLangSwitch: true,
   chapters: ALL_CHAPTERS,
+  freeMode: "earned",
 };
 
 const SETTINGS_KEY = "classSettings";
@@ -40,11 +49,12 @@ function sanitize(raw: Partial<ClassSettings>): ClassSettings {
     chapters: Array.isArray(s.chapters)
       ? s.chapters.filter((n) => ALL_CHAPTERS.includes(n))
       : DEFAULT_SETTINGS.chapters,
+    freeMode: FREE_MODES.includes(s.freeMode) ? s.freeMode : DEFAULT_SETTINGS.freeMode,
   };
 }
 
 /**
- * Parse a group link such as ?band=6-8&tier=T2&lang=es&audio=on&chapters=2,3,4
+ * Parse a group link such as ?band=6-8&tier=T2&lang=es&audio=on&chapters=2,3,4&free=earned
  * Only the parameters present override saved settings.
  */
 export function parseSettingsFromUrl(search: string): Partial<ClassSettings> {
@@ -60,6 +70,8 @@ export function parseSettingsFromUrl(search: string): Partial<ClassSettings> {
   if (audio === "on" || audio === "off") out.audio = audio === "on";
   const switching = params.get("switch");
   if (switching === "on" || switching === "off") out.allowLangSwitch = switching === "on";
+  const free = params.get("free");
+  if (free && FREE_MODES.includes(free as FreeMode)) out.freeMode = free as FreeMode;
   const chapters = params.get("chapters");
   if (chapters !== null) {
     out.chapters = chapters
@@ -91,6 +103,7 @@ export function buildGroupLink(settings: ClassSettings): string {
     audio: settings.audio ? "on" : "off",
     switch: settings.allowLangSwitch ? "on" : "off",
     chapters: settings.chapters.join(","),
+    free: settings.freeMode,
   });
   return `${window.location.origin}${window.location.pathname}?${params.toString()}`;
 }
