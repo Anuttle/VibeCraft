@@ -10,6 +10,7 @@ import { GameEvent } from "../game/quest";
 import { Interactable, WorldSetup } from "../game/world";
 import { HeldItemView } from "../utils/heldItem";
 import { BlockAtlas, loadBlockAtlas } from "../utils/textures";
+import { CharacterInstance, loadCharacter, loadTownModel } from "../utils/models";
 import { HumanoidMesh, createDecor, createHumanoidMesh, createNameTag } from "../utils/props";
 
 interface GameCanvasProps {
@@ -345,19 +346,35 @@ export default function GameCanvas({
       const cx = Math.floor((area.x0 + area.x1) / 2);
       const cz = Math.floor((area.z0 + area.z1) / 2);
       floorY = Math.min(CHUNK_SIZE_Y - 12, Math.max(generator.getTerrainHeight(cx, cz).height, SEA_LEVEL + 1));
+      // The area can reach past the first chunk (the square outside the
+      // workshop), so write straight into whichever loaded chunk holds it.
+      const groundIndex = (x: number, y: number, z: number) => {
+        const ccx = Math.floor(x / CHUNK_SIZE_X);
+        const ccz = Math.floor(z / CHUNK_SIZE_Z);
+        const blocks = loadedChunks.get(`${ccx},${ccz}`);
+        return { blocks, i: x - ccx * CHUNK_SIZE_X + (z - ccz * CHUNK_SIZE_Z) * CHUNK_SIZE_X + y * CHUNK_SIZE_X * CHUNK_SIZE_Z };
+      };
+      const setGround = (x: number, y: number, z: number, block: BlockType) => {
+        const { blocks, i } = groundIndex(x, y, z);
+        if (blocks) blocks[i] = block;
+      };
+      const getGround = (x: number, y: number, z: number) => {
+        const { blocks, i } = groundIndex(x, y, z);
+        return blocks ? blocks[i] : BlockType.AIR;
+      };
       for (let x = area.x0; x <= area.x1; x++) {
         for (let z = area.z0; z <= area.z1; z++) {
           for (let y = 1; y < CHUNK_SIZE_Y; y++) {
-            const current = getLocal(x, y, z);
+            const current = getGround(x, y, z);
             if (y < floorY - 3) continue;
             if (y < floorY) {
               if (current === BlockType.AIR || current === BlockType.WATER || current === BlockType.WOOD || current === BlockType.LEAVES) {
-                setLocal(x, y, z, BlockType.DIRT);
+                setGround(x, y, z, BlockType.DIRT);
               }
             } else if (y === floorY) {
-              setLocal(x, y, z, BlockType.GRASS);
+              setGround(x, y, z, BlockType.GRASS);
             } else {
-              setLocal(x, y, z, BlockType.AIR);
+              setGround(x, y, z, BlockType.AIR);
             }
           }
         }
@@ -616,6 +633,61 @@ export default function GameCanvas({
       heldView.refresh();
     });
 
+    // Scenery from public/models: town pieces set on the ground, and
+    // townspeople who wander outside the workshop.
+    /** Height of the ground (not treetops or water) in a column, or null. */
+    const groundAt = (x: number, z: number): number | null => {
+      for (let y = CHUNK_SIZE_Y - 1; y > 0; y--) {
+        const b = getBlockAtWorld(x, y, z);
+        if (b === BlockType.AIR || b === BlockType.LEAVES || b === BlockType.WOOD || b === BlockType.TORCH) continue;
+        return b === BlockType.WATER ? null : y;
+      }
+      return null;
+    };
+
+    for (const prop of setup.props ?? []) {
+      loadTownModel(prop.model).then((model) => {
+        if (disposed || !model) return;
+        const y = groundAt(Math.floor(prop.x), Math.floor(prop.z));
+        if (y === null) return;
+        model.position.set(prop.x, y + 1, prop.z);
+        model.rotation.y = ((prop.rot ?? 0) * Math.PI) / 2;
+        scene.add(model);
+      });
+    }
+
+    // Townspeople walk between points on a ring around the workshop (wide
+    // enough that their paths never cut through it), or around the spawn.
+    const WALK_SPEED = 1.3;
+    const walkCenter = setup.structure ? { x: 8, z: 8 } : { x: spawnAt.x + 0.5, z: spawnAt.z + 0.5 };
+    const ring = setup.structure ? { min: 11, max: 17, turn: 0.9 } : { min: 5, max: 16, turn: Math.PI };
+    const pickWalkTarget = (from: THREE.Vector3): THREE.Vector3 | null => {
+      const angle = Math.atan2(from.z - walkCenter.z, from.x - walkCenter.x);
+      for (let tries = 0; tries < 8; tries++) {
+        const a = angle + (Math.random() - 0.5) * ring.turn;
+        const r = ring.min + Math.random() * (ring.max - ring.min);
+        const x = walkCenter.x + Math.cos(a) * r;
+        const z = walkCenter.z + Math.sin(a) * r;
+        const y = groundAt(Math.floor(x), Math.floor(z));
+        if (y !== null) return new THREE.Vector3(x, y + 1, z);
+      }
+      return null;
+    };
+    const folk = setup.townsfolk;
+    for (let i = 0; folk && i < folk.count; i++) {
+      const id = folk.characters[i % folk.characters.length];
+      loadCharacter(id).then((char) => {
+        if (disposed || !char) return;
+        const start = pickWalkTarget(
+          new THREE.Vector3(walkCenter.x + Math.cos(i * 2.4) * 14, 0, walkCenter.z + Math.sin(i * 2.4) * 14)
+        );
+        if (!start) return;
+        char.group.position.copy(start);
+        scene.add(char.group);
+        walkers.push({ char, target: null, wait: Math.random() * 3 });
+      });
+    }
+
     for (let i = 0; i < (setup.structure ? 0 : 4); i++) {
       spawnPig(Math.floor(6 + (Math.random() - 0.5) * 20), Math.floor(6 + (Math.random() - 0.5) * 20));
     }
@@ -691,11 +763,39 @@ export default function GameCanvas({
       if (activeItemDef?.type === "tool") onToolUsedRef.current?.(activeSlotIndexRef.current);
     };
 
+    const ANIMAL_REACH = 4.5;
+
+    /** Townspeople from public/models/characters; see the scenery setup below. */
+    const walkers: Array<{ char: CharacterInstance; target: THREE.Vector3 | null; wait: number }> = [];
+
+    /** Tapping a townsperson makes them stop, turn and nod. Returns whether one was tapped. */
+    const greetTownsperson = () => {
+      if (!cameraRef.current || walkers.length === 0) return false;
+      raycaster.setFromCamera(SCREEN_CENTER, cameraRef.current);
+      const hit = raycaster.intersectObjects(walkers.map((w) => w.char.group), true)[0];
+      if (!hit || hit.distance > ANIMAL_REACH) return false;
+      const block = targetedBlock();
+      if (block && block.distance < hit.distance) return false;
+      const walker = walkers.find((w) => {
+        let o: THREE.Object3D | null = hit.object;
+        while (o && o !== w.char.group) o = o.parent;
+        return o === w.char.group;
+      });
+      if (!walker) return false;
+      const g = walker.char.group;
+      g.rotation.y = Math.atan2(playerPosition.current.x - g.position.x, playerPosition.current.z - g.position.z);
+      walker.target = null;
+      walker.wait = 2.5;
+      walker.char.play("idle");
+      walker.char.playOnce("emote-yes");
+      return true;
+    };
+
     /**
      * Tapping an animal startles it: it squeals, hops and runs off for a moment.
      * There is no combat; animals can't be hurt. Returns whether one was tapped.
      */
-    const ANIMAL_REACH = 4.5;
+    // (ANIMAL_REACH is also the reach for greeting townspeople.)
     const startleAnimal = () => {
       if (!cameraRef.current || mobsRef.current.length === 0) return false;
       raycaster.setFromCamera(SCREEN_CENTER, cameraRef.current);
@@ -729,7 +829,7 @@ export default function GameCanvas({
     const breaking = { held: false, key: "", elapsed: 0 };
     const startBreaking = () => {
       if (!inputEnabledRef.current) return;
-      if (startleAnimal()) return;
+      if (greetTownsperson() || startleAnimal()) return;
       breaking.held = true;
     };
     const stopBreaking = () => {
@@ -838,6 +938,7 @@ export default function GameCanvas({
         player: playerPosition.current.toArray(),
         held: hotbarRef.current[activeSlotIndexRef.current]?.itemId ?? "",
         activeBlock: activeBlockRef.current,
+        townsfolk: walkers.map((w) => w.char.group.position.toArray()),
       });
     }
 
@@ -1228,6 +1329,36 @@ export default function GameCanvas({
         if (mob.rightLegFront) mob.rightLegFront.rotation.x = isMoving ? -swingAngle : 0;
         if (mob.leftLegBack) mob.leftLegBack.rotation.x = isMoving ? -swingAngle : 0;
         if (mob.rightLegBack) mob.rightLegBack.rotation.x = isMoving ? swingAngle : 0;
+      }
+
+      // Townspeople: walk to a point, wait a moment, pick another
+      for (const w of walkers) {
+        w.char.mixer.update(delta);
+        const g = w.char.group;
+        if (!w.target) {
+          w.wait -= delta;
+          if (w.wait > 0) continue;
+          w.target = pickWalkTarget(g.position);
+          if (w.target) w.char.play("walk");
+          else w.wait = 2;
+          continue;
+        }
+        const dx = w.target.x - g.position.x;
+        const dz = w.target.z - g.position.z;
+        const dist = Math.hypot(dx, dz);
+        const ground = dist < 0.15 ? null : groundAt(Math.floor(g.position.x + (dx / dist) * 0.4), Math.floor(g.position.z + (dz / dist) * 0.4));
+        // Arrived, or the way ahead is water or a step too tall: rest, then go elsewhere.
+        if (ground === null || Math.abs(ground + 1 - g.position.y) > 1.1) {
+          w.target = null;
+          w.wait = 2 + Math.random() * 4;
+          w.char.play("idle");
+          continue;
+        }
+        const step = Math.min(dist, WALK_SPEED * delta);
+        g.position.x += (dx / dist) * step;
+        g.position.z += (dz / dist) * step;
+        g.position.y += (ground + 1 - g.position.y) * Math.min(1, delta * 10);
+        g.rotation.y = Math.atan2(dx, dz);
       }
 
       // Characters turn toward the player when nearby

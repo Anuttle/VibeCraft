@@ -1,5 +1,6 @@
 import { Line } from "../i18n/types";
 import { Chapter } from "../game/quest";
+import { COUNTRY_SCENE } from "../game/world";
 
 // Tutorial: learn the controls before the story begins.
 //
@@ -16,7 +17,7 @@ const NOT_K2 = ["3-5", "6-8", "9-12"] as const;
 
 export const TUTORIAL: Chapter = {
   id: "tutorial",
-  world: { spawnTrees: true },
+  world: { spawnTrees: true, ...COUNTRY_SCENE },
   steps: [
     {
       id: "welcome",

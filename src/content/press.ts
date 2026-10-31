@@ -1,6 +1,6 @@
 import { Band, Lang, Line } from "../i18n/types";
 import { Chapter } from "../game/quest";
-import { GUTENBERG, WORKSHOP } from "../game/world";
+import { GUTENBERG, TOWN_SCENE, WORKSHOP } from "../game/world";
 import type { PerBandLang, QuizConfig } from "../game/activities";
 
 // Chapter 4: The Press. Mainz, c. 1450.
@@ -26,6 +26,7 @@ export const PRESS_CHAPTER: Chapter = {
     structure: WORKSHOP,
     npcs: [GUTENBERG],
     spawn: { x: 7, z: 11, lookAt: { x: 8, z: 7 } },
+    ...TOWN_SCENE,
   },
   // Filled in below, after the configs are defined.
   activities: {},
