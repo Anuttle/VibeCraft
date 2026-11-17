@@ -7,6 +7,7 @@ A bilingual (English / Latin American Spanish) educational game about the histor
 - **Writing content:** [docs/CONTENT_GUIDE.md](docs/CONTENT_GUIDE.md)
 - **Adding textures:** [docs/TEXTURES.md](docs/TEXTURES.md)
 - **3D models:** [docs/MODELS.md](docs/MODELS.md)
+- **World History Unit 3 alignment:** [docs/UNIT3_ALIGNMENT.md](docs/UNIT3_ALIGNMENT.md)
 
 ## Development
 

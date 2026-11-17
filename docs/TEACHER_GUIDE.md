@@ -19,6 +19,7 @@ Each chapter takes about one class period. Turn on only the chapters you want to
 | 5 | The Indulgences | print forms for a customer and keep the accounts |
 | 6 | The Bible & the Debt | print Bible pages, work out Gutenberg's loan, argue who should own the business |
 | 7 | The Spread of Printing | follow printing across Europe and to Mexico City, and connect it to the Reformation, science and news |
+| 8 | Past or Future? (grades 9–12 only) | answer the unit's big question: what was first printed, how printing preserved the past, Columbus's 1493 letter and exploration, and how printing changed business. Written at a 9th-grade reading level; see `docs/UNIT3_ALIGNMENT.md` |
 
 Every chapter ends with a journal check. The game saves the answers.
 

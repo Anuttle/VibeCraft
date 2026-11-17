@@ -8,6 +8,7 @@ import { GLOSSARY_INK_PAPER } from "./chapters/inkpaper";
 import { GLOSSARY_INDULGENCES } from "./chapters/indulgences";
 import { GLOSSARY_BIBLE } from "./chapters/bible";
 import { GLOSSARY_SPREAD } from "./chapters/spread";
+import { GLOSSARY_PAST_FUTURE } from "./chapters/pastfuture";
 
 const normalize = (s: string) =>
   s
@@ -54,6 +55,7 @@ export const GLOSSARY: GlossaryEntry[] = combine([
   GLOSSARY_INDULGENCES,
   GLOSSARY_BIBLE,
   GLOSSARY_SPREAD,
+  GLOSSARY_PAST_FUTURE,
 ]);
 
 /** Find the entry for a bolded word or phrase, matching the term or an alias in that language. */

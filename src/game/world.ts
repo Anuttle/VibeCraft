@@ -259,6 +259,18 @@ export const ZELL: NpcDef = {
   idle: BACK_TO_WORK,
 };
 
+export const ALDUS: NpcDef = {
+  id: "aldus",
+  name: { en: "Aldus Manutius", es: "Aldo Manucio" },
+  x: 8,
+  z: 7,
+  look: { skin: "#e3b896", hair: "#3b2a20", robe: "#26232b", hat: "#111111" },
+  idle: {
+    en: "Every page we print here can outlive us. Keep gathering your evidence.",
+    es: "Cada página que imprimimos aquí puede durar más que nosotros. Sigue reuniendo tu evidencia.",
+  },
+};
+
 // ---------------------------------------------------------------------------
 // Chapter scenes. Station ids here are the keys of each chapter's activities.
 // ---------------------------------------------------------------------------
@@ -413,6 +425,26 @@ export const SPREAD_WORLD: WorldSetup = {
     { id: "effects", spot: "A", block: BlockType.DESK, decor: "desk", label: { en: "the reading desk", es: "el atril de lectura" } },
   ]),
   npcs: [ZELL],
+  spawn: SPAWN,
+  ...TOWN_SCENE,
+};
+
+/**
+ * Chapter 8: Aldus Manutius's print shop in Venice, around 1500. Stations:
+ * library (first books, preserving the past), letter (printing Columbus's
+ * letter), map (where the letter was printed), counting (business and change).
+ */
+export const PAST_FUTURE_WORLD: WorldSetup = {
+  structure: makeRoom(
+    { floor: BlockType.STONE_BRICK, wall: BlockType.PLASTER, post: BlockType.LACQUER, beam: BlockType.TIMBER },
+    [
+      { id: "library", spot: "A", block: BlockType.DESK, decor: "desk", label: { en: "the chained library", es: "la biblioteca encadenada" } },
+      { id: "letter", spot: "B", block: BlockType.PRESS, decor: "press", label: { en: "the printing press", es: "la prensa" } },
+      { id: "counting", spot: "C", block: BlockType.COUNTER, decor: "counter", label: { en: "the counting house", es: "la casa de cuentas" } },
+      { id: "map", spot: "D", block: BlockType.MAP_TABLE, decor: "maptable", label: { en: "the map table", es: "la mesa del mapa" } },
+    ]
+  ),
+  npcs: [ALDUS],
   spawn: SPAWN,
   ...TOWN_SCENE,
 };

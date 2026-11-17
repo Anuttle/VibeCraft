@@ -53,6 +53,8 @@ export interface Step {
 
 export interface Chapter {
   id: string;
+  /** Grade bands this chapter is written for; it is hidden for others. Omitted means every band. */
+  bands?: Band[];
   world?: WorldSetup;
   /** Activity opened at each station, keyed by station id. */
   activities?: Record<StationId, ActivityDef>;

@@ -297,7 +297,7 @@ function Settings({ settings, profiles, onPrint, onSave, onClearData, onClose }:
           {CHAPTERS.filter((c) => c.number !== null).map((c) => (
             <Toggle
               key={c.id}
-              label={`${c.number}. ${app.pick(c.title)}`}
+              label={`${c.number}. ${app.pick(c.title)}${c.chapter?.bands ? ` (${c.chapter.bands.join(", ")})` : ""}`}
               checked={draft.chapters.includes(c.number!)}
               onChange={() => toggleChapter(c.number!)}
             />
