@@ -14,8 +14,8 @@ export interface AppContextValue {
 
 export const AppContext = createContext<AppContextValue>({
   lang: "en",
-  tier: "T2",
-  band: "3-5",
+  tier: "T4",
+  band: "9-12",
   audio: true,
   inputMode: "mouse",
 });

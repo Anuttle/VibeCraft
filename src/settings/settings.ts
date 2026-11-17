@@ -33,8 +33,8 @@ export const ALL_CHAPTERS = [0, 1, 2, 3, 4, 5, 6, 7, 8];
 const LEGACY_CHAPTERS = [0, 1, 2, 3, 4, 5, 6, 7];
 
 export const DEFAULT_SETTINGS: ClassSettings = {
-  band: "3-5",
-  tier: "T2",
+  band: "9-12",
+  tier: "T4",
   lang: "en",
   audio: true,
   allowLangSwitch: true,
