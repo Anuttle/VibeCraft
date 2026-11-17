@@ -14,18 +14,23 @@ const cache = new Map<string, Promise<GLTF | null>>();
 function load(path: string): Promise<GLTF | null> {
   let pending = cache.get(path);
   if (!pending) {
-    pending = loader.loadAsync(BASE + path).catch(() => null);
+    pending = loader
+      .loadAsync(BASE + path)
+      .then((gltf) => {
+        // Once per file: clones share these textures.
+        crispTextures(gltf.scene);
+        return gltf;
+      })
+      .catch(() => null);
     cache.set(path, pending);
   }
   return pending;
 }
 
-/** Keep the pixel-art textures crisp, and let the models cast shadows. */
-function prepare(root: THREE.Object3D) {
+/** Keep the pixel-art textures crisp. */
+function crispTextures(root: THREE.Object3D) {
   root.traverse((o) => {
     if (!(o instanceof THREE.Mesh)) return;
-    o.castShadow = true;
-    o.receiveShadow = true;
     for (const m of [o.material].flat() as THREE.MeshStandardMaterial[]) {
       if (m.map) {
         m.map.magFilter = THREE.NearestFilter;
@@ -34,6 +39,15 @@ function prepare(root: THREE.Object3D) {
         m.map.needsUpdate = true;
       }
     }
+  });
+}
+
+/** Let a cloned model cast and receive shadows. */
+function prepare(root: THREE.Object3D) {
+  root.traverse((o) => {
+    if (!(o instanceof THREE.Mesh)) return;
+    o.castShadow = true;
+    o.receiveShadow = true;
   });
 }
 
@@ -82,7 +96,8 @@ export async function loadCharacter(id: string): Promise<CharacterInstance | nul
   };
   const playOnce = (name: string) => {
     const once = actions.get(name);
-    if (!once) return;
+    // Already playing it: let it finish rather than stacking a second return.
+    if (!once || current === name) return;
     const back = current;
     once.reset().setLoop(THREE.LoopOnce, 1).fadeIn(0.15).play();
     once.clampWhenFinished = false;

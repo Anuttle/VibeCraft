@@ -22,13 +22,11 @@ export function preventPageZoom() {
     document.addEventListener(type, (e) => e.preventDefault(), { passive: false });
   }
 
-  // Pinch in browsers that report it as a two-finger touch move.
+  // Pinch in other browsers (Chrome on Chromebooks and Android): any two-finger move.
   document.addEventListener(
     "touchmove",
     (e) => {
-      if (e.touches.length > 1 && (e as TouchEvent & { scale?: number }).scale !== undefined && (e as TouchEvent & { scale?: number }).scale !== 1) {
-        e.preventDefault();
-      }
+      if (e.touches.length > 1) e.preventDefault();
     },
     { passive: false }
   );
