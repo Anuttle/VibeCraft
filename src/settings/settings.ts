@@ -10,8 +10,13 @@ export interface ClassSettings {
   audio: boolean;
   /** Students may switch between English and Spanish themselves. */
   allowLangSwitch: boolean;
-  /** Story chapter numbers (0-7) that are enabled. The tutorial is always enabled. */
+  /** Story chapter numbers that are enabled. The tutorial is always enabled. */
   chapters: number[];
+  /**
+   * The chapters that existed when these settings were saved. A chapter added
+   * to the game later isn't in this list, so it is switched on automatically.
+   */
+  knownChapters?: number[];
   /**
    * Free build: "earned" unlocks it once a student finishes every enabled
    * chapter, "open" makes it available to everyone, "off" hides it.
@@ -23,6 +28,9 @@ export type FreeMode = "earned" | "open" | "off";
 export const FREE_MODES: FreeMode[] = ["earned", "open", "off"];
 
 export const ALL_CHAPTERS = [0, 1, 2, 3, 4, 5, 6, 7, 8];
+
+/** Chapters that existed before settings recorded `knownChapters`. */
+const LEGACY_CHAPTERS = [0, 1, 2, 3, 4, 5, 6, 7];
 
 export const DEFAULT_SETTINGS: ClassSettings = {
   band: "3-5",
@@ -37,6 +45,16 @@ export const DEFAULT_SETTINGS: ClassSettings = {
 const SETTINGS_KEY = "classSettings";
 const PIN_KEY = "teacherPin";
 
+/**
+ * The saved chapter list, plus any chapter added to the game since it was
+ * saved. Settings saved before `knownChapters` existed knew chapters 0-7.
+ */
+function withNewChapters(chapters: number[], known: number[] | undefined): number[] {
+  const seen = Array.isArray(known) ? known : LEGACY_CHAPTERS;
+  const added = ALL_CHAPTERS.filter((n) => !seen.includes(n) && !chapters.includes(n));
+  return [...chapters, ...added].filter((n) => ALL_CHAPTERS.includes(n)).sort((a, b) => a - b);
+}
+
 function sanitize(raw: Partial<ClassSettings>): ClassSettings {
   const s = { ...DEFAULT_SETTINGS, ...raw };
   return {
@@ -46,9 +64,8 @@ function sanitize(raw: Partial<ClassSettings>): ClassSettings {
     audio: typeof s.audio === "boolean" ? s.audio : DEFAULT_SETTINGS.audio,
     allowLangSwitch:
       typeof s.allowLangSwitch === "boolean" ? s.allowLangSwitch : DEFAULT_SETTINGS.allowLangSwitch,
-    chapters: Array.isArray(s.chapters)
-      ? s.chapters.filter((n) => ALL_CHAPTERS.includes(n))
-      : DEFAULT_SETTINGS.chapters,
+    chapters: Array.isArray(s.chapters) ? withNewChapters(s.chapters, s.knownChapters) : DEFAULT_SETTINGS.chapters,
+    knownChapters: ALL_CHAPTERS,
     freeMode: FREE_MODES.includes(s.freeMode) ? s.freeMode : DEFAULT_SETTINGS.freeMode,
   };
 }
@@ -78,6 +95,8 @@ export function parseSettingsFromUrl(search: string): Partial<ClassSettings> {
       .split(",")
       .map((c) => parseInt(c, 10))
       .filter((n) => ALL_CHAPTERS.includes(n));
+    // A link that lists chapters is a deliberate choice: don't add new ones to it.
+    out.knownChapters = ALL_CHAPTERS;
   }
   return out;
 }

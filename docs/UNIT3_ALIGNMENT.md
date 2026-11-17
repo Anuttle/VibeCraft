@@ -18,7 +18,7 @@ Chapter 8 was written from the unit's materials. It is set in Aldus Manutius's p
 
 The journal check follows the unit test: Gutenberg's innovation, cost of books, how people learned before printing, Marco Polo and Mandeville, the Columbus letter, Luther, and the two short-answer questions (Q28 and Q29).
 
-Note on Chapter 8 for teachers: on a device where the teacher panel was set up before Chapter 8 existed, turn it on under **Chapters**, or add `8` to the group link's `chapters=` list.
+Note on Chapter 8 for teachers: a device whose teacher panel was set up before Chapter 8 existed turns it on automatically, keeping the other chapter choices. A group link with its own `chapters=` list is used as written, so add `8` to that list to include it.
 
 ## Other chapters that cover the unit
 
