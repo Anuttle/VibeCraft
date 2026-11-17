@@ -3,7 +3,7 @@ import { BookOpen, CheckCircle2, ChevronLeft, GraduationCap, Lock, Play, Plus } 
 import { useApp } from "../AppContext";
 import { Lang } from "../i18n/types";
 import { Profile } from "../save/profiles";
-import { CHAPTERS, FREE_BUILD, freeBuildUnlocked } from "../content/chapters";
+import { CHAPTERS, FREE_BUILD, chapterForBand, freeBuildUnlocked } from "../content/chapters";
 import type { FreeMode } from "../settings/settings";
 import { GlossaryList } from "./Glossary";
 
@@ -186,7 +186,9 @@ export function ChapterSelect({
   onOpenJournal,
 }: ChapterSelectProps) {
   const app = useApp();
-  const visible = CHAPTERS.filter((c) => c.number === null || enabledChapters.includes(c.number));
+  const visible = CHAPTERS.filter(
+    (c) => (c.number === null || enabledChapters.includes(c.number)) && chapterForBand(c, app.band)
+  );
 
   return (
     <ScreenFrame>
@@ -283,7 +285,12 @@ function FreeBuildCard({
   onPlay: (chapterId: string) => void;
 }) {
   const app = useApp();
-  const { unlocked, done, total } = freeBuildUnlocked(freeMode, enabledChapters, (id) => !!profile.progress[id]?.completed);
+  const { unlocked, done, total } = freeBuildUnlocked(
+    freeMode,
+    enabledChapters,
+    (id) => !!profile.progress[id]?.completed,
+    app.band
+  );
   return (
     <button
       type="button"

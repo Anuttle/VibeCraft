@@ -6,7 +6,7 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 import type { Chapter, Step } from "../src/game/quest";
 import type { ActivityDef, QuizConfig, QuizItem } from "../src/game/activities";
-import { BANDS, LANGS, Line, TIERS, Tiered, resolveTiered, stripMarkup } from "../src/i18n/types";
+import { BANDS, Band, LANGS, Line, TIERS, Tiered, resolveTiered, stripMarkup } from "../src/i18n/types";
 import { findTerm } from "../src/content/glossary";
 
 const errors: string[] = [];
@@ -80,9 +80,9 @@ function checkQuiz(where: string, quiz: QuizConfig, band: string, lang: string) 
   });
 }
 
-function checkActivity(where: string, act: ActivityDef) {
+function checkActivity(where: string, act: ActivityDef, bands: readonly Band[]) {
   if (!act.title?.en || !act.title?.es) err(where, "activity needs a title in en and es");
-  for (const band of BANDS) {
+  for (const band of bands) {
     const perBand = (act.config as Record<string, unknown>)[band];
     if (!perBand) {
       err(where, `missing config for band ${band}`);
@@ -162,9 +162,11 @@ function checkChapter(file: string, ch: Chapter) {
 
   for (const id of stationIds) if (!activityIds.has(id)) err(where, `station "${id}" has no activity`);
   for (const id of activityIds) if (!stationIds.has(id)) err(where, `activity "${id}" has no station in the world`);
-  for (const [id, act] of Object.entries(ch.activities ?? {})) checkActivity(`${where} activity ${id}`, act);
+  // A chapter written for some bands only is checked for those bands.
+  const bands = ch.bands ?? BANDS;
+  for (const [id, act] of Object.entries(ch.activities ?? {})) checkActivity(`${where} activity ${id}`, act, bands);
 
-  for (const band of BANDS) {
+  for (const band of bands) {
     const steps = ch.steps.filter((s: Step) => !s.bands || s.bands.includes(band));
     const last = steps[steps.length - 1];
     if (ch.id !== "tutorial" && last?.objective?.type !== "journal") err(where, `${band}: last step should be the journal check`);
@@ -196,7 +198,7 @@ function checkChapter(file: string, ch: Chapter) {
   if (ch.id !== "tutorial") {
     if (!ch.journal) err(where, "chapter needs a journal check");
     else
-      for (const band of BANDS)
+      for (const band of bands)
         for (const lang of LANGS) {
           const q = ch.journal[band]?.[lang];
           if (!q) err(where, `journal missing ${band}/${lang}`);

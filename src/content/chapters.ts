@@ -1,4 +1,4 @@
-import { UiText } from "../i18n/types";
+import { Band, UiText } from "../i18n/types";
 import { Chapter } from "../game/quest";
 import { FREE_SCENE } from "../game/world";
 import { TUTORIAL } from "./tutorial";
@@ -10,6 +10,7 @@ import { INK_PAPER_CHAPTER } from "./chapters/inkpaper";
 import { INDULGENCES_CHAPTER } from "./chapters/indulgences";
 import { BIBLE_CHAPTER } from "./chapters/bible";
 import { SPREAD_CHAPTER } from "./chapters/spread";
+import { PAST_FUTURE_CHAPTER } from "./chapters/pastfuture";
 
 export interface ChapterInfo {
   id: string;
@@ -96,6 +97,14 @@ export const CHAPTERS: ChapterInfo[] = [
     icon: "🗺️",
     chapter: SPREAD_CHAPTER,
   },
+  {
+    id: "past-future",
+    number: 8,
+    title: { en: "Past or Future?", es: "¿Pasado o futuro?" },
+    anchor: { en: "Venice, c. 1500: the unit's big question", es: "Venecia, c. 1500: la gran pregunta de la unidad" },
+    icon: "🧭",
+    chapter: PAST_FUTURE_CHAPTER,
+  },
 ];
 
 /**
@@ -116,12 +125,20 @@ export function findChapter(id: string): ChapterInfo | undefined {
 }
 
 /** Whether a student may play free build under the teacher's setting. */
+/** Whether a chapter is written for this grade band (some are for older students only). */
+export function chapterForBand(c: ChapterInfo, band: Band): boolean {
+  return !c.chapter?.bands || c.chapter.bands.includes(band);
+}
+
 export function freeBuildUnlocked(
   mode: "earned" | "open" | "off",
   enabledChapters: number[],
-  completed: (chapterId: string) => boolean
+  completed: (chapterId: string) => boolean,
+  band: Band
 ): { unlocked: boolean; done: number; total: number } {
-  const story = CHAPTERS.filter((c) => c.number !== null && enabledChapters.includes(c.number) && c.chapter);
+  const story = CHAPTERS.filter(
+    (c) => c.number !== null && enabledChapters.includes(c.number) && c.chapter && chapterForBand(c, band)
+  );
   const done = story.filter((c) => completed(c.id)).length;
   const unlocked = mode === "open" || (mode === "earned" && done === story.length && story.length > 0);
   return { unlocked, done, total: story.length };

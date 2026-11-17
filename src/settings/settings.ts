@@ -22,7 +22,7 @@ export interface ClassSettings {
 export type FreeMode = "earned" | "open" | "off";
 export const FREE_MODES: FreeMode[] = ["earned", "open", "off"];
 
-export const ALL_CHAPTERS = [0, 1, 2, 3, 4, 5, 6, 7];
+export const ALL_CHAPTERS = [0, 1, 2, 3, 4, 5, 6, 7, 8];
 
 export const DEFAULT_SETTINGS: ClassSettings = {
   band: "3-5",
