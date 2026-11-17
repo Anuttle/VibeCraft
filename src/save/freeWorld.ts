@@ -11,6 +11,9 @@ export interface FreeWorld {
 
 const key = (profileId: string) => `freeWorld.${profileId}`;
 
+/** Cancels a recorder's pending save, by profile, so a cleared world isn't written back. */
+const pendingSaves = new Map<string, () => void>();
+
 export function loadFreeWorld(profileId: string): FreeWorld {
   const saved = readJson<FreeWorld | null>(key(profileId), null);
   if (saved && typeof saved.seed === "string" && saved.edits && typeof saved.edits === "object") return saved;
@@ -23,9 +26,14 @@ export function loadFreeWorld(profileId: string): FreeWorld {
  */
 export function freeWorldRecorder(profileId: string, world: FreeWorld) {
   let timer: ReturnType<typeof setTimeout> | null = null;
-  const flush = () => {
+  const cancel = () => {
     if (timer) clearTimeout(timer);
     timer = null;
+  };
+  pendingSaves.set(profileId, cancel);
+  const flush = () => {
+    if (pendingSaves.get(profileId) !== cancel) return; // the world was cleared
+    cancel();
     writeJson(key(profileId), world);
   };
   return {
@@ -39,5 +47,7 @@ export function freeWorldRecorder(profileId: string, world: FreeWorld) {
 }
 
 export function clearFreeWorld(profileId: string): void {
+  pendingSaves.get(profileId)?.();
+  pendingSaves.delete(profileId);
   removeKey(key(profileId));
 }

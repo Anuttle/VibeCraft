@@ -366,7 +366,6 @@ export default function GameCanvas({
         for (let z = area.z0; z <= area.z1; z++) {
           for (let y = 1; y < CHUNK_SIZE_Y; y++) {
             const current = getGround(x, y, z);
-            if (y < floorY - 3) continue;
             if (y < floorY) {
               if (current === BlockType.AIR || current === BlockType.WATER || current === BlockType.WOOD || current === BlockType.LEAVES) {
                 setGround(x, y, z, BlockType.DIRT);
@@ -376,6 +375,18 @@ export default function GameCanvas({
             } else {
               setGround(x, y, z, BlockType.AIR);
             }
+          }
+        }
+      }
+      // Trees cut by the edge of the leveled area would float; clear the
+      // wood and leaves in a band around it.
+      const TREE_MARGIN = 3;
+      for (let x = area.x0 - TREE_MARGIN; x <= area.x1 + TREE_MARGIN; x++) {
+        for (let z = area.z0 - TREE_MARGIN; z <= area.z1 + TREE_MARGIN; z++) {
+          if (x >= area.x0 && x <= area.x1 && z >= area.z0 && z <= area.z1) continue;
+          for (let y = 1; y < CHUNK_SIZE_Y; y++) {
+            const b = getGround(x, y, z);
+            if (b === BlockType.WOOD || b === BlockType.LEAVES) setGround(x, y, z, BlockType.AIR);
           }
         }
       }
@@ -635,9 +646,13 @@ export default function GameCanvas({
 
     // Scenery from public/models: town pieces set on the ground, and
     // townspeople who wander outside the workshop.
-    /** Height of the ground (not treetops or water) in a column, or null. */
-    const groundAt = (x: number, z: number): number | null => {
-      for (let y = CHUNK_SIZE_Y - 1; y > 0; y--) {
+    /**
+     * Height of the ground (not treetops or water) in a column, or null.
+     * With `below`, only blocks under that height count, so a roof or floor
+     * built above it isn't taken for the ground.
+     */
+    const groundAt = (x: number, z: number, below = CHUNK_SIZE_Y): number | null => {
+      for (let y = Math.min(CHUNK_SIZE_Y, Math.floor(below)) - 1; y > 0; y--) {
         const b = getBlockAtWorld(x, y, z);
         if (b === BlockType.AIR || b === BlockType.LEAVES || b === BlockType.WOOD || b === BlockType.TORCH) continue;
         return b === BlockType.WATER ? null : y;
@@ -668,7 +683,9 @@ export default function GameCanvas({
         const r = ring.min + Math.random() * (ring.max - ring.min);
         const x = walkCenter.x + Math.cos(a) * r;
         const z = walkCenter.z + Math.sin(a) * r;
-        const y = groundAt(Math.floor(x), Math.floor(z));
+        // The natural land height (or the leveled floor), plus room to step up.
+        const land = Math.max(generator.getTerrainHeight(Math.floor(x), Math.floor(z)).height, floorY) + 3;
+        const y = groundAt(Math.floor(x), Math.floor(z), land);
         if (y !== null) return new THREE.Vector3(x, y + 1, z);
       }
       return null;
@@ -827,9 +844,10 @@ export default function GameCanvas({
     // Breaking takes a hold: the game loop counts up while the button, mouse
     // button or finger stays down, and breaks the block when time is up.
     const breaking = { held: false, key: "", elapsed: 0 };
-    const startBreaking = () => {
+    /** `react` false: the press may be the start of a look-drag, so don't greet or startle yet. */
+    const startBreaking = (react = true) => {
       if (!inputEnabledRef.current) return;
-      if (greetTownsperson() || startleAnimal()) return;
+      if (react && (greetTownsperson() || startleAnimal())) return;
       breaking.held = true;
     };
     const stopBreaking = () => {
@@ -1048,12 +1066,20 @@ export default function GameCanvas({
     let mouseDownX = 0;
     let mouseDownY = 0;
     let lastRightDown = -Infinity;
+    let mouseDownAt = 0;
+    // A finger's long press also sends contextmenu; only a mouse or trackpad places.
+    let lastPointerType = "";
 
     const handleContextMenu = (e: MouseEvent) => {
       if (e.target !== canvas) return;
       e.preventDefault();
       // Some trackpads only send this, without a right-button mousedown.
-      if (!document.pointerLockElement && inputModeRef.current === "touch" && e.timeStamp - lastRightDown > 400) {
+      if (
+        !document.pointerLockElement &&
+        inputModeRef.current === "touch" &&
+        lastPointerType === "mouse" &&
+        e.timeStamp - lastRightDown > 400
+      ) {
         secondaryAction();
       }
     };
@@ -1075,12 +1101,19 @@ export default function GameCanvas({
       isMouseDragging = true;
       lastMouseX = mouseDownX = e.clientX;
       lastMouseY = mouseDownY = e.clientY;
-      startBreaking();
+      mouseDownAt = e.timeStamp;
+      startBreaking(false);
     };
 
-    const handleMouseUp = () => {
+    const handleMouseUp = (e: MouseEvent) => {
+      // A quick click without dragging greets a townsperson or startles an animal.
+      const click =
+        isMouseDragging &&
+        e.timeStamp - mouseDownAt < 300 &&
+        Math.hypot(e.clientX - mouseDownX, e.clientY - mouseDownY) <= DRAG_CANCELS_BREAK_PX;
       isMouseDragging = false;
       stopBreaking();
+      if (click && inputEnabledRef.current && !greetTownsperson()) startleAnimal();
     };
 
     const handleMouseMove = (e: MouseEvent) => {
@@ -1103,6 +1136,7 @@ export default function GameCanvas({
     let lastTouchY = 0;
 
     const handlePointerDown = (e: PointerEvent) => {
+      lastPointerType = e.pointerType;
       if (e.pointerType !== "touch" || lookPointerId !== null) return;
       e.preventDefault(); // also suppresses the emulated mouse events
       lookPointerId = e.pointerId;
@@ -1346,9 +1380,16 @@ export default function GameCanvas({
         const dx = w.target.x - g.position.x;
         const dz = w.target.z - g.position.z;
         const dist = Math.hypot(dx, dz);
-        const ground = dist < 0.15 ? null : groundAt(Math.floor(g.position.x + (dx / dist) * 0.4), Math.floor(g.position.z + (dz / dist) * 0.4));
-        // Arrived, or the way ahead is water or a step too tall: rest, then go elsewhere.
-        if (ground === null || Math.abs(ground + 1 - g.position.y) > 1.1) {
+        const ground =
+          dist < 0.15
+            ? null
+            : groundAt(Math.floor(g.position.x + (dx / dist) * 0.4), Math.floor(g.position.z + (dz / dist) * 0.4), g.position.y + 1.5);
+        // Room to stand there: the two blocks above the ground must be open.
+        const aheadX = Math.floor(g.position.x + (dx / dist) * 0.4);
+        const aheadZ = Math.floor(g.position.z + (dz / dist) * 0.4);
+        const blocked = ground !== null && (isSolidAt(aheadX, ground + 1, aheadZ) || isSolidAt(aheadX, ground + 2, aheadZ));
+        // Arrived, or the way ahead is water, a wall or a step too tall: rest, then go elsewhere.
+        if (ground === null || blocked || Math.abs(ground + 1 - g.position.y) > 1.1) {
           w.target = null;
           w.wait = 2 + Math.random() * 4;
           w.char.play("idle");
