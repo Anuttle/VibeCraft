@@ -1,5 +1,6 @@
 import { UiText } from "../i18n/types";
 import { Chapter } from "../game/quest";
+import { FREE_SCENE } from "../game/world";
 import { TUTORIAL } from "./tutorial";
 import { PRESS_CHAPTER } from "./press";
 import { CLAY_CHAPTER } from "./chapters/clay";
@@ -107,7 +108,7 @@ export const FREE_BUILD: ChapterInfo = {
   title: { en: "Free Build", es: "Construcción libre" },
   anchor: { en: "Build your own print shop, or anything you like", es: "Construye tu propia imprenta, o lo que quieras" },
   icon: "🏗️",
-  chapter: { id: "free", world: { spawnTrees: true }, steps: [] },
+  chapter: { id: "free", world: { spawnTrees: true, ...FREE_SCENE }, steps: [] },
 };
 
 export function findChapter(id: string): ChapterInfo | undefined {

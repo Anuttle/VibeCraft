@@ -5,25 +5,37 @@ import path from 'path';
 import {defineConfig, type Plugin} from 'vite';
 
 /**
- * Lists the images in public/textures as `virtual:texture-list`, so a texture
- * is added just by putting a PNG with the right name in the folder (see
- * docs/TEXTURES.md). The list is made at build time; restart the dev server
- * after adding files.
+ * Lists the images in public/textures and the models in public/models as
+ * `virtual:texture-list`, so a texture or model is added just by putting the
+ * file in its folder (see docs/TEXTURES.md and docs/MODELS.md). The list is
+ * made at build time; restart the dev server after adding files.
  */
 function textureList(): Plugin {
   const id = 'virtual:texture-list';
-  const list = (dir: string) => {
+  const files = (dir: string, pattern: RegExp) => {
     try {
-      return fs.readdirSync(path.resolve(__dirname, 'public/textures', dir)).filter((f) => /\.(png|webp|jpe?g)$/i.test(f)).sort();
+      return fs.readdirSync(path.resolve(__dirname, 'public', dir)).filter((f) => pattern.test(f)).sort();
     } catch {
       return [];
     }
   };
+  const list = (dir: string) => files(`textures/${dir}`, /\.(png|webp|jpe?g)$/i);
   return {
     name: 'texture-list',
     resolveId: (source) => (source === id ? '\0' + id : null),
     load: (resolved) =>
-      resolved === '\0' + id ? `export default ${JSON.stringify({blocks: list('blocks'), items: list('items')})};` : null,
+      resolved === '\0' + id
+        ? `export default ${JSON.stringify({
+            blocks: list('blocks'),
+            items: list('items'),
+            models: {
+              characters: files('models/characters', /\.glb$/i),
+              town: files('models/town', /\.glb$/i),
+              // Town models are colored by a shared palette image; without it they'd be blank.
+              townColormap: files('models/town/Textures', /^colormap\.png$/i).length > 0,
+            },
+          })};`
+        : null,
   };
 }
 

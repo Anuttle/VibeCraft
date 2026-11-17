@@ -25,6 +25,13 @@ export interface Interactable {
   z: number;
 }
 
+export interface ScenePropDef {
+  model: string;
+  x: number;
+  z: number;
+  rot?: number;
+}
+
 export type BlockSetter = (x: number, y: number, z: number, block: BlockType) => void;
 
 export type DecorKind =
@@ -58,6 +65,13 @@ export interface WorldSetup {
   npcs?: NpcDef[];
   /** Spawn point (block coordinates) and the point to face. */
   spawn?: { x: number; z: number; lookAt?: { x: number; z: number } };
+  /** Background townspeople (Kenney characters by letter) who wander outside. */
+  townsfolk?: { characters: string[]; count: number };
+  /**
+   * Scenery from public/models/town, set on the ground. x and z are world
+   * positions (block centers end in .5); rot is quarter turns.
+   */
+  props?: ScenePropDef[];
   /**
    * Free build: a fixed terrain seed, saved block edits to replay (by chunk,
    * then block index), and a callback for each block the player changes.
@@ -81,6 +95,12 @@ export interface WorldSetup {
 
 const W0 = 2;
 const W1 = 13;
+
+/**
+ * Ground leveled for a scene: the yard plus a square around it, widest in
+ * front of the south door, where the town props and townspeople are.
+ */
+const SQUARE = { x0: -4, z0: -4, x1: 19, z1: 23 };
 
 export interface RoomStyle {
   floor: BlockType;
@@ -110,7 +130,7 @@ export function makeRoom(
   extras: Array<{ x: number; dy: number; z: number; block: BlockType }> = []
 ): Structure {
   return {
-    area: { x0: 1, z0: 1, x1: 14, z1: 14 },
+    area: SQUARE,
     build(set, y) {
       for (let x = W0; x <= W1; x++) for (let z = W0; z <= W1; z++) set(x, y, z, style.floor);
 
@@ -245,6 +265,72 @@ export const ZELL: NpcDef = {
 
 const SPAWN = { x: 7, z: 11, lookAt: { x: 8, z: 7 } };
 
+// ---------------------------------------------------------------------------
+// Scenery outside the workshops. Townspeople are Kenney characters chosen
+// because their clothes could pass for the period: a (workman), e and k
+// (townspeople), m (traveler), n (robe and headband, used in China).
+// Props sit outside the walled yard (blocks 1-14), mostly south of the door.
+// ---------------------------------------------------------------------------
+
+const EUROPEAN_FOLK = ["a", "e", "k", "m"];
+
+/** A street in Mainz: a cart, a market stool and a fountain. */
+export const TOWN_SCENE: Pick<WorldSetup, "townsfolk" | "props"> = {
+  townsfolk: { characters: EUROPEAN_FOLK, count: 3 },
+  props: [
+    { model: "fountain-round-detail", x: 8, z: 21 },
+    { model: "cart-high", x: 12.5, z: 17.5, rot: 1 },
+    { model: "stall-stool", x: 4.5, z: 17.5 },
+    { model: "rock-small", x: -1.5, z: 9.5 },
+    { model: "pillar-stone", x: 5.5, z: 15.5 },
+    { model: "pillar-stone", x: 10.5, z: 15.5 },
+  ],
+};
+
+/** Countryside in China: rocks and a curved hedge. */
+const CHINA_SCENE: Pick<WorldSetup, "townsfolk" | "props"> = {
+  townsfolk: { characters: ["n"], count: 2 },
+  props: [
+    { model: "rock-large", x: 3.5, z: 18.5 },
+    { model: "rock-wide", x: 13.5, z: 17.5, rot: 1 },
+    { model: "hedge-large-curved", x: -1.5, z: 4.5 },
+    { model: "hedge-large-curved", x: 17.5, z: 10.5, rot: 2 },
+  ],
+};
+
+/** Open country for the tutorial: a farm cart and rocks, away from the spawn trees. */
+export const COUNTRY_SCENE: Pick<WorldSetup, "townsfolk" | "props"> = {
+  townsfolk: { characters: ["a", "m"], count: 2 },
+  props: [
+    { model: "cart-high", x: 15.5, z: 3.5 },
+    { model: "rock-large", x: 1.5, z: 16.5 },
+    { model: "rock-small", x: 16.5, z: 15.5 },
+  ],
+};
+
+/** Free Build: a small square to the east, clear of the spawn, and townspeople. */
+export const FREE_SCENE: Pick<WorldSetup, "townsfolk" | "props"> = {
+  townsfolk: { characters: [...EUROPEAN_FOLK, "n"], count: 4 },
+  props: [
+    { model: "fountain-round-detail", x: 24, z: 8 },
+    { model: "cart-high", x: 27.5, z: 11.5, rot: 1 },
+    { model: "stall-stool", x: 21.5, z: 5.5 },
+    { model: "stall-stool", x: 22.5, z: 5.5 },
+    { model: "pillar-stone", x: 20.5, z: 11.5 },
+    { model: "rock-wide", x: 29.5, z: 4.5 },
+  ],
+};
+
+/** A quiet monastery: a cloister well and stone pillars by the door. */
+const MONASTERY_SCENE: Pick<WorldSetup, "townsfolk" | "props"> = {
+  props: [
+    { model: "fountain-square", x: 8, z: 20 },
+    { model: "pillar-stone", x: 6.5, z: 14.5 },
+    { model: "pillar-stone", x: 9.5, z: 14.5 },
+    { model: "rock-small", x: 16.5, z: 6.5 },
+  ],
+};
+
 /** Chapter 0: Bi Sheng's workshop, China, c. 1040. Stations: carve, kiln, frame. */
 export const CLAY_WORLD: WorldSetup = {
   structure: makeRoom(
@@ -257,6 +343,7 @@ export const CLAY_WORLD: WorldSetup = {
   ),
   npcs: [BI_SHENG],
   spawn: SPAWN,
+  ...CHINA_SCENE,
 };
 
 /** Chapter 1: a monastery scriptorium. Stations: desk, ledger. */
@@ -270,6 +357,7 @@ export const SCRIPTORIUM_WORLD: WorldSetup = {
   ),
   npcs: [SCRIBE],
   spawn: SPAWN,
+  ...MONASTERY_SCENE,
 };
 
 /** Chapter 2: Gutenberg's workshop, casting type. Stations: furnace, mould. */
@@ -280,6 +368,7 @@ export const METAL_WORLD: WorldSetup = {
   ]),
   npcs: [GUTENBERG],
   spawn: SPAWN,
+  ...TOWN_SCENE,
 };
 
 /** Chapter 3: ink in the workshop; a papermaker shows how paper is made. Stations: ink, vat, paperpress. */
@@ -291,6 +380,7 @@ export const INK_PAPER_WORLD: WorldSetup = {
   ]),
   npcs: [GUTENBERG, PAPERMAKER],
   spawn: SPAWN,
+  ...TOWN_SCENE,
 };
 
 /** Chapter 5: printing indulgences for a paying customer. Stations: press, ledger. */
@@ -301,6 +391,7 @@ export const INDULGENCE_WORLD: WorldSetup = {
   ]),
   npcs: [CHAPPE],
   spawn: SPAWN,
+  ...TOWN_SCENE,
 };
 
 /** Chapter 6: the Bible, the loan and the lawsuit. Stations: press, ledger, court. */
@@ -312,6 +403,7 @@ export const BIBLE_WORLD: WorldSetup = {
   ]),
   npcs: [GUTENBERG, FUST],
   spawn: SPAWN,
+  ...TOWN_SCENE,
 };
 
 /** Chapter 7: printing spreads across Europe and beyond. Stations: map, effects. */
@@ -322,6 +414,7 @@ export const SPREAD_WORLD: WorldSetup = {
   ]),
   npcs: [ZELL],
   spawn: SPAWN,
+  ...TOWN_SCENE,
 };
 
 // ---------------------------------------------------------------------------
@@ -329,7 +422,7 @@ export const SPREAD_WORLD: WorldSetup = {
 // ---------------------------------------------------------------------------
 
 export const WORKSHOP: Structure = {
-  area: { x0: 1, z0: 1, x1: 14, z1: 14 },
+  area: SQUARE,
   build(set, y) {
     makeRoom(WORKSHOP_STYLE, []).build(set, y);
     set(5, y + 1, 5, BlockType.PRESS);

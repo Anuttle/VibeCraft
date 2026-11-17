@@ -6,6 +6,7 @@ A bilingual (English / Latin American Spanish) educational game about the histor
 - **Design:** [docs/GAME_DESIGN.md](docs/GAME_DESIGN.md)
 - **Writing content:** [docs/CONTENT_GUIDE.md](docs/CONTENT_GUIDE.md)
 - **Adding textures:** [docs/TEXTURES.md](docs/TEXTURES.md)
+- **3D models:** [docs/MODELS.md](docs/MODELS.md)
 
 ## Development
 
